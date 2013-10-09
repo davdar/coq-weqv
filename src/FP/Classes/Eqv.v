@@ -1,0 +1,1 @@
+Class Eqv (T:Type) : Type := { eqv : T -> T -> Type }.
