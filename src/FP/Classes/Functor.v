@@ -1,6 +1,7 @@
 Require Import FP.Data.WeakSetoid.
 Require Import FP.Data.Unit.
 Require Import FP.Data.Function.
+Require Import FP.Data.Function_Q.
 
 Import WeakEqv.Notation.
 Import Eqv.Notation.
@@ -14,8 +15,8 @@ Class Functor (t:WeakSetoid -> WeakSetoid) :=
       DD ((A ⇨ B) ⇨ (t A ⇨ t B)) 
   ; functor_identity : 
       forall {A:WeakSetoid}, 
-      fmap ⊛ (idQ (A:=A)) ≃ idQ
+      fmap ⊛ (id_Q (A:=A)) ≃ id_Q
   ; functor_composition : 
       forall {A B C:WeakSetoid} (g:DD (B ⇨ C)) (f:DD (A ⇨ B)), 
-      fmap ⊛ (composeQ ⊛ g ⊛ f) ≃ composeQ ⊛ (fmap ⊛ g) ⊛ (fmap ⊛ f)
+      fmap ⊛ (compose_Q ⊛ g ⊛ f) ≃ compose_Q ⊛ (fmap ⊛ g) ⊛ (fmap ⊛ f)
   }.

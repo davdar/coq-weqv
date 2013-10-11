@@ -58,38 +58,6 @@ Ltac decide_weqv :=
     end ;
   auto.
 
-Definition idQ {A:WeakSetoid} : DD (A ⇨ A) := 
-  mk_DD (A ⇨ A) id (fun _ _ => id).
-
-Definition idQ_elim {A:WeakSetoid} (x:DD A) : idQ ⊛ x ≃ x.
-Proof.
-  decide_weqv.
-Defined.
-
-Definition composeQ {A B C:WeakSetoid} : DD ((B ⇨ C) ⇨ (A ⇨ B) ⇨ (A ⇨ C)) :=
-  mk_DD ((B ⇨ C) ⇨ (A ⇨ B) ⇨ A ⇨ C) 
-        compose
-        (fun _ _ Rff' g g' Rgg' x x' Rxx' => Rff' (g x) (g' x') (Rgg' x x' Rxx')).
-
-Definition composeQ_elim 
-  {A B C:WeakSetoid} (g:DD (B ⇨ C)) (f:DD (A ⇨ B)) (x:DD A) 
-  : composeQ ⊛ g ⊛ f ⊛ x ≃ g ⊛ (f ⊛ x).
-Proof.
-  decide_weqv.
-Defined.
-
-Definition applyQ {A B:WeakSetoid} : DD ((A ⇨ B) ⇨ A ⇨ B) :=
-  mk_DD ((A ⇨ B) ⇨ A ⇨ B)
-        apply
-        (fun _ _ Rfg x y Rxy => Rfg x y Rxy).
-
-Definition flipQ {A B C:WeakSetoid} : DD ((A ⇨ B ⇨ C) ⇨ B ⇨ A ⇨ C) :=
-    mk_DD ((A ⇨ B ⇨ C) ⇨ B ⇨ A ⇨ C)
-          flip
-          (fun _ _ Rfg y y' Ryy' x x' Rxx' => Rfg x x' Rxx' y y' Ryy').
-
-Definition apply_toQ {A B:WeakSetoid} : DD (A ⇨ (A ⇨ B) ⇨ B) := flipQ ⊛ applyQ.
-
 Module Notation.
   Infix "⇨" := weak_setoid_arrow (right associativity, at level 100).
   Infix "⊛" := weak_setoid_apply (left associativity, at level 50).
