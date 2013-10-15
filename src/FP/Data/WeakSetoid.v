@@ -44,17 +44,46 @@ Definition weak_setoid_apply {A B:WeakSetoid} (f:DD (A ⇨ B)) (x:DD A) : DD B :
   mk_DD B (DD_value f $ DD_value x) (DD_proper f (DD_value x) (DD_value x) (DD_proper x)).
 Local Infix "⊛" := weak_setoid_apply (left associativity, at level 50).
 
-Definition EL (A:Type) : WeakSetoid :=
-  mk_WeakSetoid A (Leibniz_WeakEqv A).
+Definition EL (A:Type) : WeakSetoid := mk_WeakSetoid A (Leibniz_WeakEqv A).
 
-Ltac decide_weqv :=
-  unfold "⊛","≃" ; simpl ;
+Ltac finish_decide_weqv_proper :=
+  match goal with
+  | [ |- ?f ?x ≈ ?g ?y ] => apply function_weqv_app ; finish_decide_weqv_proper
+  | [ |- DD_value ?x ≈ DD_value ?x ] => exact (DD_proper x)
+  | _ => tauto
+  end.
+
+Ltac decide_weqv_proper :=
+  repeat
+    (try finish_decide_weqv_proper ;
+     match goal with
+     | [ |- proper _ _ ] => unfold proper
+     | [ |- ?f ≈ ?g ] =>
+         match type of f with _ -> _ => 
+           unfold "≈" ; simpl ; unfold respectful ; intros ; simpl
+         end
+     end).
+
+Class ByDecideWeqv {A:WeakSetoid} (x:WeakSetoid_T A) : Type := 
+  by_decide_weqv : proper weqv x.
+Hint Extern 5 =>
+  match goal with
+  | [ |- ByDecideWeqv ?x ] => 
+      unfold ByDecideWeqv ; decide_weqv_proper
+  end : typeclass_instances.
+
+Definition mk_DD_infer (A:WeakSetoid) (x:WeakSetoid_T A) `{! ByDecideWeqv x } : DD A :=
+  mk_DD A x by_decide_weqv.
+
+Ltac decide_weqv_beta :=
   repeat
     match goal with
+    | [ |- ?x ≃ ?y ] =>
+        match type of x with DD _ =>
+          unfold "≃" ; simpl
+        end
     | [ |- DD_value ?x ≈ DD_value ?x ] => apply (DD_proper x)
     | [ |- DD_value ?f _ ≈ DD_value ?f _ ] => apply (DD_proper f)
-    | [ q : ?x ≃ ?y |- DD_value ?x ≈ DD_value ?y ] => apply q
-    | [ q : ?x ≃ ?y |- DD_value ?x _ ≈ DD_value ?y _ ] => apply q
     end ;
   auto.
 

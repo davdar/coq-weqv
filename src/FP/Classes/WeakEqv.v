@@ -37,6 +37,13 @@ Proof.
     WeqvProper.
 Defined.
 
+Section Function.
+  Context {A B} `{! WeakEqv A ,! WeakEqv B}.
+
+  Definition function_weqv_app {f g:A -> B} (Rfg:weqv f g) {x y:A} (Rxy:weqv x y) 
+    : weqv (f x) (g y) := Rfg x y Rxy.
+End Function.
+
 Local Instance Leibniz_WeakEqv (T:Type) : WeakEqv T := { weqv := eq }.
 Proof.
   constructor ; intros ; subst ; auto.
