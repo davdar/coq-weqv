@@ -7,8 +7,8 @@ Require Import FP.Classes.Transitive.
 Require Import FP.Data.Relation.
 Require Import FP.Data.Function.
 Require Import FP.Data.Function_Q.
-Require Import FP.Data.Function_Q_beta.
 Require Import FP.Data.RewriteState.
+Require Import FP.Data.Tactic.
 
 Import WeakSetoid.Notation.
 Import WeakEqv.Notation.
@@ -36,39 +36,58 @@ Class Applicative (t:WeakSetoid -> WeakSetoid) :=
   }.
 Ltac R_Applicative_identity :=
   match goal with
-  | [ |- RewriteState (fapply ⊛ (fret ⊛ (@id_Q ?A))) _ _ ] => 
-      ReplaceBy (applicative_identity A)
+  | [ |- RewriteState (fapply ⊛ (fret ⊛ (@id_Q ?A))) _ _ ] => ReplaceBy (applicative_identity A)
   end.
 Ltac R_Applicative_interchange :=
   match goal with
-  | [ |- RewriteState (fapply ⊛ ?fT ⊛ (fret ⊛ ?x)) _ _ ] => 
-      ReplaceBy (applicative_interchange fT x)
+  | [ |- RewriteState (fapply ⊛ ?fT ⊛ (fret ⊛ ?x)) _ _ ] => ReplaceBy (applicative_interchange fT x)
   end.
 Ltac R_Applicative_homomorphism :=
   match goal with
-  | [ |- RewriteState (fapply ⊛ (fret ⊛ ?f) ⊛ (fret ⊛ ?x)) _ _ ] => 
-      ReplaceBy (applicative_homomorphism f x)
+  | [ |- RewriteState (fapply ⊛ (fret ⊛ ?f) ⊛ (fret ⊛ ?x)) _ _ ] => ReplaceBy (applicative_homomorphism f x)
   end.
 Ltac R_Applicative_composition :=
   match goal with
-  | [ |- RewriteState (compose_Q ⊛ (fapply ⊛ ?g) ⊛ (fapply ⊛ ?f)) _ _ ] => 
-      ReplaceBy (applicative_composition g f)
+  | [ |- RewriteState (compose_Q ⊛ (fapply ⊛ ?g) ⊛ (fapply ⊛ ?f)) _ _ ] => ReplaceBy (applicative_composition g f)
   end.
-Ltac R_Applicative := 
-  R_Applicative_identity || R_Applicative_homomorphism || R_Applicative_composition.
+Ltac R_Applicative := R_Applicative_identity || R_Applicative_homomorphism || R_Applicative_composition.
 
 Section Applicative.
   Context {t:WeakSetoid -> WeakSetoid} `{! Applicative t }.
 
-  Definition fapply_fmap {A B:WeakSetoid} : DD ((A ⇨ B) ⇨ t A ⇨ t B) :=
+  Definition applicative_fmap {A B:WeakSetoid} : DD ((A ⇨ B) ⇨ t A ⇨ t B) :=
     compose_Q ⊛ fapply ⊛ fret.
 
-  Local Instance Applicative_To_Functor : Functor t := { fmap := @fapply_fmap }.
+  Local Instance Applicative_To_Functor : Functor t := { fmap := @applicative_fmap }.
   Proof.
     Local Ltac Hammer := 
-      intros ; unfold fapply_fmap ; 
-      repeat Everywhere ltac:(R_Function_beta || R_Applicative).
+      intros ; unfold applicative_fmap.
+      (*
+      ;
+      repeat Everywhere ltac:(R_fun_beta || R_Applicative).
+      *)
     - Hammer.
+      Enter.
+      R_fun_beta.
+      Show Proof.
+      unfold mk_DD_infer_f in *.
+      PushFun.
+      Show Proof.
+      unfold mk_DD_f.
+      unfold by_decide_weqv.
+      simpl.
+      Exit.
+      Enter.
+      Pop.
+      Show Proof.
+      apply rewrite_state_push_fun.
+      PushFun.
+      PushFun.
+      PushFun.
+      R_fun_beta.
+      R_Applicative.
+      Push
+      repeat Everywhere ltac:(R_fun_beta).
     - Hammer.
   Defined.
 End Applicative.

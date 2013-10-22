@@ -14,17 +14,37 @@ Import Eqv.Notation.
 
 Create HintDb rewrite_beta.
 
+Inductive RewriteContext : WeakSetoid -> WeakSetoid -> Type :=
+  | RCTop : forall {A}, RewriteContext A A
+  | RCFocusFun : forall {A B C}, RewriteContext B C -> DD A -> RewriteContext (A ⇨ B) C
+  | RCFocusArg : forall {A B C}, RewriteContext B C -> DD (A ⇨ B) -> RewriteContext A C.
+
+(*
 Definition RewriteContext (A B:WeakSetoid) := DD (A ⇨ B).
 Definition RCTop {A:WeakSetoid} : RewriteContext A A := id_Q.
 Definition RCFocusFun {A B C:WeakSetoid} (k:DD (B ⇨ C)) (x:DD A) : RewriteContext (A ⇨ B) C :=
   compose_Q ⊛ k ⊛ (apply_to_Q ⊛ x).
 Definition RCFocusArg {A B C:WeakSetoid} (k:DD (B ⇨ C)) (f:DD (A ⇨ B)) : RewriteContext A C :=
   compose_Q ⊛ k ⊛ (apply_Q ⊛ f).
+*)
+
+Definition RewriteContext_interp {A B:WeakSetoid} (k:RewriteContext A B) (x:DD A) : DD B.
+Proof.
+  induction k.
+  - exact x.
+  - exact (IHk (x ⊛ d)).
+  - exact (IHk (d ⊛ x)).
+Defined.
                                                               
+Inductive RewriteState {A B} (e:DD A) (k:RewriteContext A B) (g:DD B) : Type :=
+  | mk_RewriteState : RewriteContext_interp k e ≃ g -> RewriteState e k g.
+
+(*
 Definition RewriteState 
   {A B:WeakSetoid} (e:DD A) (k:RewriteContext A B) (g:DD B) 
   : Type := k ⊛ e ≃ g.
 Opaque RewriteState.
+*)
 
 Module Notation.
   Notation "κ⊤" := RCTop.
@@ -36,71 +56,69 @@ Import Notation.
 
 Definition rewrite_state_enter 
   {A:WeakSetoid} {e:DD A} {g:DD A} (p:RewriteState e κ⊤ g) 
-  : e ≃ g := p.
+  : e ≃ g.
+Proof.
+  destruct p ; auto.
+Defined.
 Ltac Enter :=
   match goal with
   | [ |- ?e ≃ ?g ] => apply rewrite_state_enter
   end.
-Ltac Enter0 :=
-  match goal with
-  | [ |- ?e ≃ ?g ] => change (RewriteState e κ⊤ g)
-  end.
 
 Definition rewrite_state_exit
   {A:WeakSetoid} {e:DD A} {g:DD A} (p:e ≃ g) 
-  : RewriteState e RCTop g := p.
+  : RewriteState e RCTop g.
+Proof.
+  constructor ; auto.
+Defined.
 Ltac Exit :=
   match goal with
   | [ |- RewriteState ?e RCTop ?g ] => apply rewrite_state_exit
   end.
-Ltac Exit0 :=
-  match goal with
-  | [ |- RewriteState ?e RCTop ?g ] => change (e ≃ g)
-  end.
 
 Definition rewrite_state_push_fun
-  {A B C:WeakSetoid} {f:DD (A ⇨ B)} {x:DD A} {k:RewriteContext B C} {g:DD C}
+  {A B C:WeakSetoid} 
+  (f:DD (A ⇨ B)) (x:DD A) (k:RewriteContext B C) (g:DD C)
   (p:RewriteState f (k ◁ x) g)
-  : RewriteState (f ⊛ x) k g := p.
+  : RewriteState (f ⊛ x) k g.
+Proof.
+  constructor ; destruct p ; auto.
+Defined.
 Ltac PushFun :=
   match goal with
-  | [ |- RewriteState (?f ⊛ ?x) ?k ?g ] => apply rewrite_state_push_fun
-  end.
-Ltac PushFun0 :=
-  match goal with
-  | [ |- RewriteState (?f ⊛ ?x) ?k ?g ] => change (RewriteState f (k ◁ x) g)
+  | [ |- RewriteState (?f ⊛ ?x) ?k ?g ] => apply (rewrite_state_push_fun f x k g)
   end.
 
 Definition rewrite_state_push_arg
   {A B C:WeakSetoid} {f:DD (A ⇨ B)} {x:DD A} {k:RewriteContext B C} {g:DD C}
   (p:RewriteState x (k ▷ f) g)
-  : RewriteState (f ⊛ x) k g := p.
+  : RewriteState (f ⊛ x) k g.
+Proof.
+  constructor ; destruct p ; auto.
+Defined.
 Ltac PushArg :=
   match goal with
   | [ |- RewriteState (?f ⊛ ?x) ?k ?g ] => apply rewrite_state_push_arg
-  end.
-Ltac PushArg0 :=
-  match goal with
-  | [ |- RewriteState (?f ⊛ ?x) ?k ?g ] => change (RewriteState x (k ▷ f) g)
   end.
 
 Definition rewrite_state_pop_fun
   {A B C:WeakSetoid} {f:DD (A ⇨ B)} {x:DD A} {k:RewriteContext B C} {g:DD C}
   (p:RewriteState (f ⊛ x) k g)
-  : RewriteState f (k ◁ x) g := p.
+  : RewriteState f (k ◁ x) g.
+Proof.
+  constructor ; inversion p ; auto.
+Defined.
 Definition rewrite_state_pop_arg
   {A B C:WeakSetoid} {f:DD (A ⇨ B)} {x:DD A} {k:RewriteContext B C} {g:DD C}
   (p:RewriteState (f ⊛ x) k g)
-  : RewriteState x (k ▷ f) g := p.
+  : RewriteState x (k ▷ f) g.
+Proof.
+  constructor ; destruct p ; auto.
+Defined.
 Ltac Pop :=
   match goal with
   | [ |- RewriteState ?f (?k ◁ ?x) ?g ] => apply rewrite_state_pop_fun
   | [ |- RewriteState ?x (?k ▷ ?f) ?g ] => apply rewrite_state_pop_arg
-  end.
-Ltac Pop0 :=
-  match goal with
-  | [ |- RewriteState ?f (?k ◁ ?x) ?g ] => change (RewriteState (f ⊛ x) k g)
-  | [ |- RewriteState ?x (?k ▷ ?f) ?g ] => change (RewriteState (f ⊛ x) k g)
   end.
 
 Ltac Escape := repeat Pop ; Exit.
@@ -111,15 +129,23 @@ Definition rewrite_context_replace
   {e:DD A} {e':DD A} (p:e ≃ e') {k:RewriteContext A B} {g:DD B} (rc:RewriteState e' k g)
   : RewriteState e k g.
 Proof.
-  change (k ⊛ e ≃ g) ; change (k ⊛ e' ≃ g) in rc.
-  Transitivity (k ⊛ e') ; auto ; decide_weqv_beta.
-Defined.
-
+  constructor ; destruct rc ; induction k ; simpl in *.
+  - Transitivity e' ; auto.
+  - eapply IHk.
+    eapply weak_setoid_respect_elim.
+    apply p.
+    Reflexivity.
+    auto.
+  - eapply IHk.
+    eapply weak_setoid_respect_elim.
+    Reflexivity.
+    apply p.
+    auto.
+Qed.
 Ltac ReplaceBy q :=
   match goal with
   | [ |- RewriteState ?e ?k ?g ] => apply (rewrite_context_replace q)
   end.
-
 Ltac ReplaceWith e' :=
   match goal with
   | [ |- RewriteState ?e ?k ?g ] => 
@@ -141,16 +167,17 @@ Ltac Everywhere t :=
   try (Symmetry ; Enter ; Everywhere_1 t ; Exit) ;
   try Reflexivity.
 
-Ltac Everywhere_10 t :=
+Ltac R_beta :=
   match goal with
-  | [ |- RewriteState (_ ⊛ _) _ _ ] =>
-    chain PushFun0 ; Everywhere_10 t ; Pop0 |+|
-    chain PushArg0 ; Everywhere_10 t ; Pop0 |+|
-    t ; repeat t
-  | _ => t ; repeat t
+  | [ |- RewriteState (mk_DD_f ?f ?p ⊛ ?e) _ _ ] => ReplaceBy (weak_setoid_beta f p e)
   end.
 
-Ltac Everywhere0 t := 
-  try (Enter0 ; Everywhere_10 t ; Exit0) ;
-  try (Symmetry ; Enter0 ; Everywhere_10 t ; Exit0) ;
-  try Reflexivity.
+Ltac R_fun :=
+  match goal with
+  | [ |- RewriteState (compose_Q ⊛ ?g ⊛ ?f ⊛ ?x) _ _ ] => 
+      unfold_in_term compose_Q (compose_Q ⊛ g ⊛ f ⊛ x) ; unfold mk_DD_infer_f
+  | [ |- RewriteState (id_Q ⊛ ?x) _ _ ] => 
+      unfold_in_term id_Q (id_Q ⊛ x) ; unfold mk_DD_infer_f
+  end.
+
+Ltac R_fun_beta := R_fun || R_beta.

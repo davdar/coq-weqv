@@ -15,22 +15,4 @@ Module Notation.
 
   Infix "∙" := compose (at level 65, right associativity).
   Infix "∙∶" := compose12 (at level 65, right associativity).
-  Notation "A → B" := (A -> B) (at level 90, right associativity).
-  (*
-  Notation "∀ x : A , B" := 
-    (forall x : A , B) 
-    (at level 200, right associativity, x ident).
-  Notation "∀ x .. y , P" := 
-    (forall x, .. (forall y, P) ..)
-    (at level 200, right associativity, x binder, y binder).
-  Notation "∃ x : A , B" :=
-    (exists x : A, B)
-    (at level 200, right associativity, x ident).
-  Notation "∃ x .. y , P" :=
-    (exists x, .. (exists y, P) ..)
-    (at level 200, right associativity, x binder, y binder).
-  *)
-  (*
-  Print Grammar constr.
-  *)
 End Notation.
