@@ -61,33 +61,9 @@ Section Applicative.
   Local Instance Applicative_To_Functor : Functor t := { fmap := @applicative_fmap }.
   Proof.
     Local Ltac Hammer := 
-      intros ; unfold applicative_fmap.
-      (*
-      ;
+      intros ; unfold applicative_fmap ;
       repeat Everywhere ltac:(R_fun_beta || R_Applicative).
-      *)
     - Hammer.
-      Enter.
-      R_fun_beta.
-      Show Proof.
-      unfold mk_DD_infer_f in *.
-      PushFun.
-      Show Proof.
-      unfold mk_DD_f.
-      unfold by_decide_weqv.
-      simpl.
-      Exit.
-      Enter.
-      Pop.
-      Show Proof.
-      apply rewrite_state_push_fun.
-      PushFun.
-      PushFun.
-      PushFun.
-      R_fun_beta.
-      R_Applicative.
-      Push
-      repeat Everywhere ltac:(R_fun_beta).
     - Hammer.
   Defined.
 End Applicative.
