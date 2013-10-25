@@ -137,7 +137,7 @@ Ltac decide_weqv :=
     | [ |- DD_value _ _ ≃ DD_value _ _ ] => eapply DD_value_respect_elim
     end) ; 
   auto.
-Hint Extern 9 => (decide_weqv ; tauto) : typeclass_instances.
+Hint Extern 9 => (solve [ decide_weqv ]) : typeclass_instances.
 
 Module Notation.
   Infix "⇨" := weak_setoid_arrow (right associativity, at level 100).

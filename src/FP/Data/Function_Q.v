@@ -11,6 +11,16 @@ Import Eqv.Notation.
 Import WeakEqv.Notation.
 Import Function.Notation.
 
+(*
+  -- what I want the goal for compose_Q to actually look like...
+  refine(
+    let rawf := fun (g:DD (B ⇨ C)) (f:DD (A ⇨ B)) (x:DD A) => g ⊛ (f ⊛ x) in
+    let pf1 : forall g f, proper weqv (fun x => rawf g f x) := _ in
+    let pf2 : forall g, proper weqv (fun f => (mk_DD_f (fun x => rawf g f x) (pf1 g f))) := _ in
+    mk_DD_f (fun g => mk_DD_f (fun f => mk_DD_f (fun x => rawf g f x) (pf1 g f)) (pf2 g)) _
+             ) ; abstract (intros ; repeat (unfold rawf ; decide_weqv)).
+*)
+
 Definition id_Q {A:WeakSetoid} : DD (A ⇨ A) := λ x → x.
 Definition id_Q_beta {A:WeakSetoid} (x:DD A) : id_Q ⊛ x ≃ x := DD_proper x.
 Definition compose_Q {A B C:WeakSetoid} : DD ((B ⇨ C) ⇨ (A ⇨ B) ⇨ (A ⇨ C)) := λ g f x → g ⊛ (f ⊛ x).
