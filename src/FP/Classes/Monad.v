@@ -49,8 +49,15 @@ Ltac R_Monad := R_Monad_left_unit || R_Monad_right_unit || R_Monad_associativity
 Section Monad.
   Context {m:WeakSetoid -> WeakSetoid} `{! Monad m }.
   
-  Definition monad_fapply {A B:WeakSetoid} : DD (m (A ⇨ B) ⇨ m A ⇨ m B) :=
-    λ fM → λ xM → bind ⊛ fM ⊛ (λ f → bind ⊛ xM ⊛ (λ x → ret ⊛ (f ⊛ x))).
+  Definition monad_fapply {A B:WeakSetoid} : DD (m (A ⇨ B) ⇨ m A ⇨ m B).
+    refine(λ? fM xM → bind ⊛ fM ⊛ (λ? f → bind ⊛ xM ⊛ (λ? x → ret ⊛ (f ⊛ x)))).
+    decide_weqv.
+    Grab Existential Variables.
+    decide_weqv.
+    decide_weqv.
+    decide_weqv.
+  Defined.
+  Eval unfold monad_fapply,mk_DD_infer_f,mk_DD_f in  monad_fapply.
   
   Local Instance Monad_To_Applicative : Applicative m := { fret := @ret _ _ ; fapply := @monad_fapply }.
   Proof.

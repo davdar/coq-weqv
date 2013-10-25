@@ -221,17 +221,22 @@ Ltac EverywhereDNL t :=
   try (Symmetry ; EnterDNL ; Everywhere_1_DNL t ; ExitDNL) ;
   try Reflexivity.
 
+(*
 Ltac R_beta :=
+  try match goal with
+  | [ |- RewriteState (mk_DD_infer_f _ ⊛ _) _ _ ] => unfold mk_DD_infer_f
+  end ;
   match goal with
   | [ |- RewriteState (mk_DD_f ?f ?p ⊛ ?e) _ _ ] => ReplaceBy (weak_setoid_beta f p e)
   end.
+*)
 
 Ltac R_fun :=
   match goal with
   | [ |- RewriteState (compose_Q ⊛ ?g ⊛ ?f ⊛ ?x) _ _ ] => 
-      unfold_in_term compose_Q (compose_Q ⊛ g ⊛ f ⊛ x) ; unfold mk_DD_infer_f
+      ReplaceBy (compose_Q_beta g f x)
   | [ |- RewriteState (id_Q ⊛ ?x) _ _ ] => 
-      unfold_in_term id_Q (id_Q ⊛ x) ; unfold mk_DD_infer_f
+      ReplaceBy (id_Q_beta x)
   end.
 
-Ltac R_fun_beta := R_fun || R_beta.
+Ltac R_fun_beta := R_fun. (* || R_beta. *)

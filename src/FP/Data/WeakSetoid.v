@@ -114,6 +114,7 @@ Ltac other_rule :=
 
 Ltac decide_weqv :=
   repeat (
+    try Reflexivity ;
     unfold mk_DD_infer_f ;
     match goal with
     | [ |- ByDecideWeqv _ ] => unfold ByDecideWeqv
