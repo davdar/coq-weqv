@@ -1,0 +1,1 @@
+Infix "×" := (prod : Type -> Type -> Type) (left associativity, at level 40).

@@ -1,0 +1,1 @@
+Class Pointed (t:Type -> Type) := { point : forall {A}, A -> t A }.

@@ -1,10 +1,10 @@
-PACKAGES   := FP/Classes FP/Data
+PACKAGES   := NoQ AAI/Monads/Classes AAI/Monads/Transformers AAI/Analyses AAI/Lang
 FILES      := $(foreach pkg,$(PACKAGES),$(patsubst %.v,%,$(wildcard $(pkg)/*.v))) \
 	            $(patsubst %.v,%,$(wildcard *.v))
 SOURCES    := $(FILES:%=%.v) 
 
 COQ_ARGS :=
-COQ_MAKEFILE_ARGS := -R FP FP -arg "$(COQ_ARGS)"
+COQ_MAKEFILE_ARGS := -R FP FP -R NoQ NoQ -R AAI AAI -arg "$(COQ_ARGS)"
 
 .PHONY: all clean html check-admit
 
