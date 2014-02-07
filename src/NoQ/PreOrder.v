@@ -1,57 +1,68 @@
 Require Import NoQ.Transitive.
 Require Import NoQ.Relation.
+Require Import NoQ.Reflexive.
 Require Import NoQ.Symmetric.
-Require Import NoQ.WEqv.
+Require Import NoQ.LibReflexive.
+Require Import NoQ.Eqv.
 Require Import NoQ.Antisymmetric.
 Require Import NoQ.Prop.
-Require Import NoQ.WeakEquivalence.
+Require Import NoQ.Universe.
+Require Import NoQ.Arrow.
 
-Class PreOrder A `{! WEqv A } :=
+Class PreOrder A `{! Eqv A } :=
   { lte : relation A
-  ; lte_reflexivity : forall {x y}, x ≈ y -> lte x y
-  ; lte_respect : proper (weqv ⇉ weqv ⇉ implies) lte
+  ; lte_respect_eqv : proper (eqv ⇉ eqv ⇉ implies) lte
+  ; PreOrder_Reflexive :> Reflexive lte
   ; PreOrder_Transitive :> Transitive lte
   }.
 
 Infix "⊑" := lte (at level 70, no associativity).
 
 Definition lte_change_lte
-{A} `{! WEqv A ,! PreOrder A } 
+{A} `{! Eqv A ,! PreOrder A } 
 {x y:A} (x' y':A) (xRx':x ⊑ x') (yRy':y' ⊑ y) (p:x' ⊑ y') : x ⊑ y.
 Proof.
   apply (transitivity x') ; auto.
   apply (transitivity y') ; auto.
 Qed.
 
-Definition lte_change_weqv
-{A} `{! WEqv A ,! PreOrder A } 
-{x y:A} (x' y':A) (xRx':x ≈ x') (yRy':y ≈ y') (p:x' ⊑ y') : x ⊑ y.
+Definition lte_change_eqv
+{A} `{! Eqv A ,! PreOrder A } 
+{x y:A} (x' y':A) (xRx':x ≃ x') (yRy':y ≃ y') (p:x' ⊑ y') : x ⊑ y.
 Proof.
   apply (lte_change_lte x' y') ; auto.
-  - apply lte_reflexivity ; auto.
-  - apply lte_reflexivity ; apply symmetry ; auto.
+  - apply reflexivity ; auto.
+  - apply reflexivity ; apply symmetry ; auto.
 Qed.
 
-Definition monotonic 
-{A} `{! WEqv A ,! PreOrder A }
-{B} `{! WEqv B ,! PreOrder B }
-(f:A -> B) := proper (weak_respectful lte lte) f.
-Arguments monotonic {A _ _ B _ _} f /.
-          
-Instance Function_PreOrder 
-{A} `{! WEqv A ,! PreOrder A }
-{B} `{! WEqv B ,! PreOrder B }
-: PreOrder (A -> B) :=
-  { lte := respectful weqv lte }.
-Proof.
-  - intros.
-    logical_intro.
-    apply lte_reflexivity ; logical_weqv.
-  - repeat (logical_intro ; simpl ; intros).
-    apply (lte_change_weqv (x x1) (x0 y1)) ; logical_weqv.
-    apply H1 ; logical_weqv.
-  - constructor ; intros ; logical_intro.
-    apply (transitivity (y y0)).
-    + apply H ; logical_weqv.
-    + apply H0 ; logical_weqv.
-Defined.
+Class UHasPreOrder U `{! Universe U ,! UHasEqv U } :=
+  { UHasPreOrder_PreOrder :> forall (A:U), PreOrder (dom A) 
+  }.
+
+Inductive UPreOrder :=
+  { UPreOrder_dom : Type
+  ; UPreOrder_Eqv : Eqv UPreOrder_dom
+  ; UPreOrder_PreOrder : PreOrder UPreOrder_dom
+  }.
+Instance UPreOrder_Universe : Universe UPreOrder :=
+  { dom := UPreOrder_dom }.
+Instance UPreOrder_UHasEqv : UHasEqv UPreOrder := 
+  { UHasEqv_Eqv := UPreOrder_Eqv }.
+Instance UPreOrder_UHasPreOrder : UHasPreOrder UPreOrder :=
+  { UHasPreOrder_PreOrder := UPreOrder_PreOrder }.
+
+Class Monotonic {U} t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t } :=
+  { monotonic_intro : 
+      forall {A B:U} (f g:dom (t A B)), 
+      f ⊑ g -> (lte ∙⇉∙ lte) f g
+  ; monotonic_elim : 
+      forall {A B:U} (f g:dom (t A B)), 
+      (lte ∙⇉∙ lte) f g -> f ⊑ g 
+  }.
+
+Ltac monotonic :=
+repeat
+  match goal with
+  | |- ?x ∙ _ ⊑ ?y ∙ _ => apply (monotonic_intro x y)
+  | |- _ ⊑ _ => solve [auto]
+  end.

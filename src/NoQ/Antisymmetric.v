@@ -1,6 +1,5 @@
-Require Import NoQ.WeakEquivalence.
+Require Import NoQ.Eqv.
+Require Import NoQ.Relation.
 
-Class Antisymmetric {A} 
-(eqv:A -> A -> Prop) `{! WeakEquivalence eqv } 
-(R:A -> A -> Prop) :=
-  { antisymmetry : forall {x y}, R x y -> R y x -> eqv x y }.
+Class Antisymmetric {A} `{! Eqv A } (R:relation A) :=
+  { antisymmetry : forall {x y}, R x y -> R y x -> x ≃ y }.

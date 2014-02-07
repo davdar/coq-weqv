@@ -1,82 +1,81 @@
 Require Import NoQ.PartialOrder.
-Require Import NoQ.Monotonic.
-Require Import NoQ.WeakEquivalence.
+Require Import NoQ.Universe.
+Require Import NoQ.PArrow.
+Require Import NoQ.MArrow.
 Require Import NoQ.PreOrder.
 Require Import NoQ.Reflexive.
+Require Import NoQ.LibReflexive.
+Require Import NoQ.Arrow.
 Require Import NoQ.Transitive.
-Require Import NoQ.WEqv.
+Require Import NoQ.Eqv.
 Require Import NoQ.Function.
 Require Import NoQ.Relation.
 
-Class GaloisConnection 
-A `{! WEqv A ,! PartialOrder A }  
-B `{! WEqv B ,! PartialOrder B } :=
-  { galois_α : A -> B
-  ; galois_α_proper : proper weqv galois_α
-  ; galois_γ : B -> A
-  ; galois_γ_proper : proper weqv galois_γ
-  ; galois_connection : forall {x y}, proper weqv x -> proper weqv y -> (galois_α x ⊑ y <-> x ⊑ galois_γ y)
+Class GaloisConnection A B :=
+  { galois_α : dom (A ⇒ B)
+  ; galois_γ : dom (B ⇒ A)
+  ; galois_connection : 
+      forall {x:dom A} {y:dom B}, 
+      (galois_α ∙ x) ⊑ y <-> x ⊑ (galois_γ ∙ y)
   }.
-
-Local Ltac my_logical_weqv :=
-  repeat
-    (mlogical_weqv || apply galois_α_proper || apply galois_γ_proper).
 
 Section Corollaries.
   (* These 4 corollaries are equivalent to galois_connection above *)
 
   Definition galois_γα_expansive 
-  A `{! WEqv A ,! PartialOrder A }
-  B `{! WEqv B ,! PartialOrder B }
+  A `{! Eqv A ,! PartialOrder A }
+  B `{! Eqv B ,! PartialOrder B }
   `{! GaloisConnection A B }
-  : forall (x:A), proper weqv x -> x ⊑ galois_γ (galois_α x).
+  : forall (x:A), x ⊑ galois_γ ⊙ (galois_α ⊙ x).
   Proof.
     intros.
-    apply galois_connection ; my_logical_weqv.
-    apply lte_reflexivity ; my_logical_weqv.
+    apply galois_connection.
+    apply reflexivity ; plogical.
   Qed.
 
   Definition galois_αγ_contractive
-  A `{! WEqv A ,! PartialOrder A }
-  B `{! WEqv B ,! PartialOrder B }
+  A `{! Eqv A ,! PartialOrder A }
+  B `{! Eqv B ,! PartialOrder B }
   `{! GaloisConnection A B }
-  : forall (y:B), proper weqv y -> galois_α (galois_γ y) ⊑ y.
+  : forall (y:B), galois_α ⊙ (galois_γ ⊙ y) ⊑ y.
   Proof.
     intros.
-    apply galois_connection ; my_logical_weqv.
-    apply lte_reflexivity ; my_logical_weqv.
+    apply galois_connection.
+    apply reflexivity ; plogical.
   Qed.
 
   Definition galois_α_monotonic
-  A `{! WEqv A ,! PartialOrder A }  
-  B `{! WEqv B ,! PartialOrder B } 
+  A `{! Eqv A ,! PartialOrder A }  
+  B `{! Eqv B ,! PartialOrder B } 
   `{! GaloisConnection A B } 
-  : monotonic (galois_α:A -> B).
+  : monotonic (galois_α:A ⇒ B).
   Proof.
-    simpl ; logical_intro.
-    apply galois_connection ; my_logical_weqv.
+    simpl.
+    unfold proper,"⊙⇉" ; intros.
+    apply galois_connection.
     apply (transitivity y) ; auto.
     apply galois_γα_expansive ; auto.
   Qed.
 
   Definition galois_γ_monotonic
-  A `{! WEqv A ,! PartialOrder A }  
-  B `{! WEqv B ,! PartialOrder B } 
+  A `{! Eqv A ,! PartialOrder A }  
+  B `{! Eqv B ,! PartialOrder B } 
   `{! GaloisConnection A B } 
-  : monotonic (galois_γ:B -> A).
+  : monotonic (galois_γ:B ⇒ A).
   Proof.
-    simpl ; logical_intro.
-    apply galois_connection ; my_logical_weqv.
+    simpl.
+    unfold proper,"⊙⇉" ; intros.
+    apply galois_connection.
     apply (transitivity x) ; auto.
     apply galois_αγ_contractive ; auto.
   Qed.
 End Corollaries.
 
 Definition Monotonic_galois_α 
-{A} `{! WEqv A ,! PartialOrder A }
-{B} `{! WEqv B ,! PartialOrder B }
+{A} `{! Eqv A ,! PartialOrder A }
+{B} `{! Eqv B ,! PartialOrder B }
 `{! GaloisConnection A B }
-(φ:A ↗ A) (p:proper weqv φ) : (B ↗ B). 
+(φ:A ⇗ A) : (B ⇗ B). 
 Proof.
   refine(Build_Monotonic (galois_α ∘ mfun φ ∘ galois_γ) _) ; simpl.
   destruct φ ; simpl in *.

@@ -1,3 +1,4 @@
+(*
 Require Import NoQ.WeakEquivalence.
 Require Import NoQ.Relation.
 Require Import NoQ.Symmetric.
@@ -63,3 +64,4 @@ Proof.
     + logical_weqv.
     + logical_weqv.
 Defined.
+*)
