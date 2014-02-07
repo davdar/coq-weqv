@@ -36,8 +36,7 @@ Proof.
 Qed.
 
 Class UHasPreOrder U `{! Universe U ,! UHasEqv U } :=
-  { UHasPreOrder_PreOrder :> forall (A:U), PreOrder (dom A) 
-  }.
+  { UHasPreOrder_PreOrder :> forall (A:U), PreOrder (dom A) }.
 
 Inductive UPreOrder :=
   { UPreOrder_dom : Type
@@ -64,5 +63,5 @@ Ltac monotonic :=
 repeat
   match goal with
   | |- ?x ∙ _ ⊑ ?y ∙ _ => apply (monotonic_intro x y)
-  | |- _ ⊑ _ => solve [auto]
+  | |- _ ⊑ _ => solve [(apply reflexivity ; apply lib_reflexivity) || auto]
   end.

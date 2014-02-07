@@ -48,7 +48,8 @@ Section Logical_PreOrder.
   Proof.
     - unfold proper,"⇉" ; simpl ; intros.
       unfold "∙⇉∙" ; intros.
-      apply (lte_change_eqv (x ∙ x1) (x0 ∙ y1)) ; logical.
+      Set Printing All.
+      apply (lte_change_eqv (x ∙ x1) (x0 ∙ y1) (x:=y ∙ x1) (y:=y0 ∙ y1)) ; logical.
       apply H1 ; auto.
     - constructor ; unfold "∙⇉∙" ; intros.
       apply reflexivity ; logical ; auto.

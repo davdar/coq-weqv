@@ -27,6 +27,7 @@ Class Arrow U `{! Universe U ,! UHasEqv U } (arrow:U -> U -> U) :=
       forall {A B C D:U} (h:dom (arrow C D)) (g:dom (arrow B C)) (f:dom (arrow A B)),
       compose (compose h g) f ≃ compose h (compose g f)
   }.
+Arguments id {U _ _ _ _ A} : simpl never.
 Arguments apply {U _ _ _ _ A B} _ _ : simpl never.
 Arguments compose {U _ _ _ _ A B C} _ _ : simpl never.
 Infix "∙" := apply (at level 20, left associativity).
