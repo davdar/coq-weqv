@@ -1,4 +1,5 @@
 Require Import NoQ.DecEq.
+Require Import NoQ.PreOrder.
 
 Arguments nil {A}.
 Notation "[ ]" := nil.
@@ -36,3 +37,6 @@ Fixpoint remove {A B} `{! DecEq A } (x:A) (xys:list (A*B)) : list (A*B) :=
 
 Definition insert {A B} `{! DecEq A } (x:A) (y:B) (xys:list (A*B)) : list (A*B) :=
   (x,y)::remove x xys.
+
+Definition slist : UPO -> UPO.
+Admitted.

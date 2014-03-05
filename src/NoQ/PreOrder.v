@@ -7,7 +7,6 @@ Require Import NoQ.Eqv.
 Require Import NoQ.Antisymmetric.
 Require Import NoQ.Prop.
 Require Import NoQ.Universe.
-Require Import NoQ.Arrow.
 
 Class PreOrder A `{! Eqv A } :=
   { lte : relation A
@@ -35,33 +34,41 @@ Proof.
   - apply reflexivity ; apply symmetry ; auto.
 Qed.
 
+Section Lib_PreOrder.
+  Local Existing Instance Lib_Eqv.
+  Local Instance Lib_PreOrder (A:Type) : PreOrder (Eqv0:=Lib_Eqv A) A := { lte := eqv }.
+  Proof.
+    - unfold proper,"⇉",implies ; intros.
+      transitivity x ; auto.
+      transitivity x0 ; auto.
+    - constructor ; auto.
+  Defined.
+End Lib_PreOrder.
+
+(*
 Class UHasPreOrder U `{! Universe U ,! UHasEqv U } :=
   { UHasPreOrder_PreOrder :> forall (A:U), PreOrder (dom A) }.
+*)
 
-Inductive UPreOrder :=
+(* TODO: this will inevitably need to be a partial order *)
+Inductive UPO :=
   { UPreOrder_dom : Type
   ; UPreOrder_Eqv : Eqv UPreOrder_dom
   ; UPreOrder_PreOrder : PreOrder UPreOrder_dom
   }.
-Instance UPreOrder_Universe : Universe UPreOrder :=
+Instance UPO_Universe : Universe UPO :=
   { dom := UPreOrder_dom }.
+Instance UPO_Eqv : forall (A:UPO), Eqv (dom A) := UPreOrder_Eqv.
+Instance UPO_PreOrder : forall (A:UPO), PreOrder (dom A) := UPreOrder_PreOrder.
+(*
 Instance UPreOrder_UHasEqv : UHasEqv UPreOrder := 
   { UHasEqv_Eqv := UPreOrder_Eqv }.
 Instance UPreOrder_UHasPreOrder : UHasPreOrder UPreOrder :=
   { UHasPreOrder_PreOrder := UPreOrder_PreOrder }.
+*)
 
-Class Monotonic {U} t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t } :=
-  { monotonic_intro : 
-      forall {A B:U} (f g:dom (t A B)), 
-      f ⊑ g -> (lte ∙⇉∙ lte) f g
-  ; monotonic_elim : 
-      forall {A B:U} (f g:dom (t A B)), 
-      (lte ∙⇉∙ lte) f g -> f ⊑ g 
-  }.
-
-Ltac monotonic :=
-repeat
-  match goal with
-  | |- ?x ∙ _ ⊑ ?y ∙ _ => apply (monotonic_intro x y)
-  | |- _ ⊑ _ => solve [(apply reflexivity ; apply lib_reflexivity) || auto]
-  end.
+Definition embed (A:Type) : UPO :=
+  {| UPreOrder_dom := A
+   ; UPreOrder_Eqv := Lib_Eqv A
+   ; UPreOrder_PreOrder := Lib_PreOrder A
+  |}.

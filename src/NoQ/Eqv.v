@@ -18,6 +18,7 @@ Proof.
   apply (transitivity y') ; auto.
 Qed.
 
+(*
 Class UHasEqv U `{! Universe U } :=
   { UHasEqv_Eqv :> forall (A:U), Eqv (dom A) }.
 
@@ -30,6 +31,7 @@ Instance UEqv_Universe : Universe UEqv :=
 Instance UEqv_UHasEqv : UHasEqv UEqv :=
   { UHasEqv_Eqv := UEqv_Eqv }.
 Hint Unfold UEqv_UHasEqv : typeclass_instances.
+*)
 
 Definition Lib_Eqv (A:Type) : Eqv A.
 Proof.

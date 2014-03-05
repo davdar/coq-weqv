@@ -11,7 +11,7 @@ Require Import NoQ.Eqv.
 Require Import NoQ.Function.
 Require Import NoQ.Relation.
 
-Class GaloisConnection (A B:UPreOrder) :=
+Class GaloisConnection (A B:UPO) :=
   { galois_α : dom (A ⇒ B)
   ; galois_γ : dom (B ⇒ A)
   ; galois_connection : forall {x:dom A} {y:dom B}, (galois_α ∙ x) ⊑ y <-> x ⊑ (galois_γ ∙ y)

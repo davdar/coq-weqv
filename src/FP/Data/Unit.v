@@ -1,5 +1,3 @@
-Inductive Unit : Type := tt : Unit.
+Require Import FP.Core.
 
-Module Notation.
-  Notation "⊤" := Unit.
-End Notation.
+Definition qunit := lib unit.

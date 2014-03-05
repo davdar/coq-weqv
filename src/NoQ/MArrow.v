@@ -17,16 +17,15 @@ Class MonotonicArrow U `{! Universe U } :=
   { monotonic_arrow : U -> U -> U }.
 Infix "⇗" := monotonic_arrow (at level 90, right associativity).
 
-Inductive MFun {U} t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t } (A B:U) :=
+Inductive MFun t `{! Arrow t } (A B:UPO) :=
   { mfun : dom (t A B)
   ; mfun_monotonic : proper (lte ∙⇉∙ lte) mfun
   }.
-Arguments mfun {U t _ _ _ _ A B} _.
-Arguments mfun_monotonic {U t _ _ _ _ A B} _ _ _ _.
+Arguments mfun {t _ A B} _.
+Arguments mfun_monotonic {t _ A B} _ _ _ _.
 
-Local Instance MFun_Eqv 
-U t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t } 
-(A B:U) : Eqv (MFun t A B) :=
+Local Instance MFun_Eqv t `{! Arrow t } 
+(A B:UPO) : Eqv (MFun t A B) :=
   { eqv f g := eqv (mfun f) (mfun g) }.
 Proof.
   constructor.
@@ -36,55 +35,38 @@ Proof.
     apply (transitivity (mfun y)) ; auto.
 Defined.
 
-Local Instance MFun_PreOrder 
-U t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t ,! Logical t }
-(A B:U) : PreOrder (MFun t A B) :=
-  { lte f g := (lte ∙⇉∙ lte) (mfun f) (mfun g) }.
+Local Instance MFun_PreOrder t `{! Arrow t ,! Logical t } (A B:UPO) 
+: PreOrder (MFun t A B) :=
+  { lte f g := lte (mfun f) (mfun g) }.
 Proof.
   - unfold proper,"⇉" ; simpl ; intros.
-    unfold "∙⇉∙" ; intros.
-    (* THIS FAILS MISERABLY WHEN SET UP SPECIFICALLY TO UPreOrder, because:
-       UPreOrder_Eqv fails to unify with UHasEqv_Eqv
-       Grrrrrrr
-    *)
-    apply (lte_change_eqv (mfun x ∙ x1) (mfun x0 ∙ y1)) ; logical.
+    apply (lte_change_eqv (mfun x) (mfun x0)) ; logical.
     apply H1 ; auto.
   - constructor ; intros.
-    unfold "∙⇉∙" ; intros.
-    apply (lte_change_eqv (mfun y ∙ x0) (mfun y ∙ y0)) ; logical.
-    apply (mfun_monotonic y) ; auto.
+    apply reflexivity ; logical.
   - constructor ; intros.
-    unfold "∙⇉∙" ; intros.
-    apply (transitivity (mfun y ∙ x0)).
+    apply (transitivity (mfun y)).
     + apply H ; apply reflexivity ; logical.
     + apply H0 ; auto.
 Defined.
 
-Instance MArrow_PartialOrder
-U t `{! Universe U ,! UHasEqv U ,! UHasPreOrder U ,! Arrow U t ,! Logical t ,! Monotonic t }
-(A B:U) `{! PartialOrder (dom A) ,! PartialOrder (dom B) }
+Instance MArrow_PartialOrder t `{! Arrow t ,! Logical t ,! Monotonic t }
+(A B:UPO) `{! PartialOrder (dom A) ,! PartialOrder (dom B) }
 : PartialOrder (MFun t A B).
 Proof.
   constructor ; constructor ; intros.
   apply logical_elim ; unfold "∙⇉∙" ; intros.
-  apply antisymmetry ; monotonic. 
-  - apply monotonic_elim ; unfold "∙⇉∙" ; intros.
-    apply H ; auto.
-  - apply reflexivity ; logical.
-  - apply monotonic_elim ; unfold "∙⇉∙" ; intros.
-    apply H0 ; auto.
-  - apply reflexivity ; logical.
+  apply antisymmetry ; monotonic ; apply reflexivity ; logical.
 Defined.
 
-Definition MArrow (A B:UPreOrder) : UPreOrder :=
+Definition MArrow (A B:UPO) : UPO :=
   {| UPreOrder_dom := MFun proper_arrow A B |}.
-Instance UPreOrder_MonotonicArrow : MonotonicArrow UPreOrder :=
+Instance UPreOrder_MonotonicArrow : MonotonicArrow UPO :=
   { monotonic_arrow := MArrow }.
-(* HERE *)
 
-Definition MArrow_apply {A B:UPreOrder} (f:dom (A ⇗ B)) (x:dom A) 
+Definition MArrow_apply {A B:UPO} (f:dom (A ⇗ B)) (x:dom A) 
 : dom B := mfun f ∙ x.
-Definition MArrow_id {A:UPreOrder} : dom (A ⇗ A).
+Definition MArrow_id {A:UPO} : dom (A ⇗ A).
 Proof.
   refine {| mfun := id |}.
   unfold proper,"∙⇉∙" ; intros.
@@ -92,10 +74,11 @@ Proof.
 Defined.
 
 Definition MArrow_compose 
-{A B C:UPreOrder} (g:dom (B ⇗ C)) (f:dom (A ⇗ B)) 
-: dom (A ⇗ C).
+{A B C:UPO} : dom ((B ⇗ C) ⇗ (A ⇗ B) ⇗ (A ⇗ C)).
+refine {| mfun := λ (g:dom (B ⇗ C)) →
+          ({| mfun := λ (f:dom (A ⇗ B)) → mfun g ∙⊙∙ mfun f |} : dom ((A ⇗ B) ⇗ (A ⇗ C)))
+       |}.
 Proof.
-  refine {| mfun := mfun g ∙⊙∙ mfun f |}.
   unfold proper,"∙⇉∙" ; intros.
   apply (lte_change_eqv (mfun g ∙ (mfun f ∙ x)) (mfun g ∙ (mfun f ∙ y)))
     ; try apply compose_apply.
@@ -103,17 +86,21 @@ Proof.
   apply (mfun_monotonic f) ; auto.
 Defined.
 
-Instance MArrow_Arrow : Arrow UPreOrder MArrow :=
-  { id := @MArrow_id
+Instance MArrow_Arrow : Arrow MArrow :=
+  { lambda_p A B f := proper (eqv ⇉ eqv) f /\ proper (lte ⇉ lte) f
+  ; lambda A B f p := 
+      let (peqv,plte) := p in 
+      {| mfun := {| pfun := f ; pfun_proper := peqv |}
+       ; mfun_monotonic := plte 
+      |}
+  ; id := @MArrow_id
   ; apply := @MArrow_apply
   ; compose := @MArrow_compose
   }.
 Proof.
   - intros ; unfold MArrow_id,MArrow_apply ; simpl.
-    change UPreOrder_Eqv with UHasEqv_Eqv.
     apply id_apply.
   - intros ; unfold MArrow_id,MArrow_apply ; simpl.
-    change UPreOrder_Eqv with UHasEqv_Eqv.
     apply compose_apply.
   - intros ; unfold MArrow_compose ; simpl.
     change ((id ∙⊙∙ mfun f) ≃ mfun f).
@@ -130,7 +117,16 @@ Instance MArrow_Logical : Logical MArrow :=
   { logical_intro A B f g p := p
   ; logical_elim A B f g p := p
   }.
-Instance MArrow_Monotonic : Monotonic MArrow :=
-  { monotonic_intro A B f g p := p
-  ; monotonic_elim A B f g p := p
-  }.
+Instance MArrow_Monotonic : Monotonic MArrow.
+Proof.
+  constructor ; intros.
+  - unfold "∙⇉∙" ; intros.
+    apply (lte_change_lte (f ∙ y) (g ∙ y)).
+    + apply (mfun_monotonic f) ; auto.
+    + apply reflexivity ; logical.
+    + apply H ; logical.
+  - change ((eqv ∙⇉∙ lte) f g).
+    unfold "∙⇉∙" ; intros.
+    apply H.
+    apply reflexivity ; auto.
+Defined.

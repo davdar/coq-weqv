@@ -1,22 +1,16 @@
-Require Import AAI.Monads.Classes.Env.
-Require Import AAI.Monads.Classes.Store.
-Require Import AAI.Monads.Classes.Time.
-Require Import AAI.Monads.Classes.Transition.
-Require Import AAI.Notation.
-Require Import Coq.Strings.String.
-Require Import NoQ.Applicative.
-Require Import NoQ.DecEq.
-Require Import NoQ.Function.
-Require Import NoQ.Functor.
-Require Import NoQ.List.
-Require Import NoQ.ListInstances.
-Require Import NoQ.Monad.
-Require Import NoQ.MonadMorphism.
-Require Import NoQ.MonadPlus.
-Require Import NoQ.Option.
-Require Import NoQ.Pointed.
-Require Import NoQ.String.
-Require Import NoQ.Traversable.
+Require Import AAI.Classes.MonadEnvState.
+Require Import AAI.Classes.MonadStoreState.
+Require Import AAI.Classes.MonadTimeState.
+Require Import AAI.Classes.Addressable.
+Require Import AAI.Classes.Transition.
+Require Import FP.Core.
+Require Import FP.Data.String.
+Require Import FP.Data.List.
+Require Import FP.Data.Option.
+Require Import FP.Data.Product.
+Require Import FP.Classes.Monad.
+Require Import FP.Classes.Traversable.
+Require Import FP.Classes.Peano.
 
 Inductive Op := Add1 | Sub1.
 
@@ -27,16 +21,16 @@ Inductive Call :=
   | HaltC (a:Atom)
 with Atom :=
   | LitA (n:nat)
-  | VarA (x:string)
-  | LamA (x:string) (k:string) (c:Call)
-  | KonA (x:string) (c:Call)
+  | VarA (x:dom qstring)
+  | LamA (x:dom qstring) (k:dom qstring) (c:Call)
+  | KonA (x:dom qstring) (c:Call)
   | PrimA (o:Op) (args:list Atom).
 
 Inductive Val L :=
   | NumV (n:nat)
   | NatV
-  | LamCloV (x:string) (k:string) (c:Call) (env:Env string L)
-  | KonCloV (x:string) (c:Call) (env:Env string L).
+  | LamCloV (x:dom qstring) (k:dom qstring) (c:dom (lib Call)) (env:dom (env qstring L))
+  | KonCloV (x:dom qstring) (c:dom (lib Call)) (env:dom (env qstring L)).
 Arguments NumV {L} n.
 Arguments NatV {L}.
 Arguments LamCloV {L} x k c env.
@@ -45,88 +39,103 @@ Arguments KonCloV {L} x c env.
 (* Variable names and their meanings:
    - m : the interpretation monad 
    - d : the domain of the state space
-   - L : locations
+   - L : location
    - T : time 
 *)
-Class Analysis (d:Type -> Type) (L:Type) (T:Type) (m:Type -> Type) :=
+Class Analysis (d:qtype -> qtype) (L:qtype) (T:qtype) (m:qtype -> qtype) :=
   { Analysis_d_Monad           :> Monad d
   ; Analysis_d_Traversable     :> Traversable d
-  ; Analysis_L_DecEq           :> DecEq L
-  ; Analysis_T_Addressable     :> Addressable L string T
+  ; Analysis_L_DecEq           :> DecEqv (dom L)
+  ; Analysis_T_Peano           :> Peano T
+  ; Analysis_T_Addressable     :> Addressable qstring T L
   ; Analysis_m_Monad           :> Monad m
   ; Analysis_m_MonadPlus       :> MonadPlus m
   ; Analysis_m_MonadMorphism   :> MonadMorphism d m
-  ; Analysis_m_MonadEnvState   :> MonadEnvState string L m
-  ; Analysis_m_MonadStoreState :> MonadStoreState d L (Val L) m
+  ; Analysis_m_MonadEnvState   :> MonadEnvState qstring L m
+  ; Analysis_m_MonadStoreState :> MonadStoreState d L (lib (Val L)) m
   ; Analysis_m_MonadTimeState  :> MonadTimeState T m
   }.
- 
+
 Section S.
   Context {d L T m} `{! Analysis d L T m }.
-  Context (delt:Op -> list (Val L) -> option (Val L)). 
+  Context (delt:dom (lib Op ⇒ qlist (lib (Val L)) ⇒ qoption (lib (Val L)))). 
   
-  Definition coerceLamCloV (x:Val L) : m (string × string × Call × Env string L) :=
-    match x with
-    | LamCloV x k c env => ret (x, k, c, env)
-    | _ => mzero
-    end.
-  Definition coerceKonCloV (x:Val L) : m (string × Call × Env string L) :=
-    match x with
-    | KonCloV x c env => ret (x, c, env)
-    | _ => mzero
-    end.
+  Definition coerceLamCloV : dom (lib (Val L) ⇒ m (qstring × qstring × lib Call × env qstring L)) := 
+    λ (x : dom (lib (Val L))) →
+      match x with
+      | LamCloV x k c ρ => ret ∙ (x ,, k ,, c ,, ρ)
+      | _ => mzero
+      end.
 
-  Fixpoint atomic (a:Atom) : m (d (Val L)) :=
+  Definition coerceKonCloV : dom (lib (Val L) ⇒ m (qstring × lib Call × env qstring L)) :=
+    λ (x : dom (lib (Val L))) →
+      match x with
+      | KonCloV x c ρ => ret ∙ (x ,, c ,, ρ)
+      | _ => mzero
+      end.
+
+  Fixpoint _atomic (a:Atom) : dom (m (d (lib (Val L)))) :=
     match a with
-    | LitA n => ret $ ret $ NumV n
+    | LitA n => ret (m:=m) $ ret (m:=d) $ (NumV n : dom (lib (Val L)))
     | VarA x =>
-        a <- lookupEnv x ;;
-        lookupStore a
+        a ← lookupEnv ∙ x ;;
+        lookupStore ∙ a
     | LamA x k c =>
-        env <- getEnv ;;
-        ret $ ret $ LamCloV x k c env
+        env ← getEnv ;;
+        ret (m:=m) $ ret (m:=d) $ (LamCloV x k c env : dom (lib (Val L)))
     | KonA x c =>
-        env <- getEnv ;;
-        ret $ ret $ KonCloV x c env
+        env ← getEnv ;;
+        ret (m:=m) $ ret (m:=d) $ (KonCloV x c env : dom (lib (Val L)))
     | PrimA o args =>
-        vDs <- list_mapM atomic args ;;
-        let vsD : d (list (Val L)) := tsequence vDs in
-        let vMD : d (option (Val L)) := monad_map (delt o) vsD in
-        mplusFromOption $ tsequence vMD
+        let vDMs : dom (qlist (m (d (lib (Val L))))) := lmap _atomic args in
+        vDs ← sequence ∙ vDMs ;;
+        let vsD : dom (d (qlist (lib (Val L)))) := sequence (t:=qlist) (m:=d) ∙ vDs in
+        let vMD : dom (d (qoption (lib (Val L)))) := mmap (m:=d) ∙ (delt ∙ o) ∙ vsD in
+        liftOption $ sequence ∙ vMD
     end.
+  Definition atomic : dom (lib Atom ⇒ m (d (lib (Val L)))) := λ (a:dom (lib Atom)) → _atomic a.
 
-  Definition stepApply (c:Call) (xs_args:list (string × Atom)) (env:Env string L) : m Call :=
-    let '(xs, args) := unzip xs_args in
-    ls <- list_mapM alloc xs ;;
-    vDs <- list_mapM atomic args ;;
-    putEnv env ;;
-    list_mapM (modifyEnv ∙ uncurry insert) $ zip xs ls ;;
-    list_mapM (modifyStore ∙ uncurry insert) $ zip ls vDs ;;
-    ret c.
+  Definition stepApply : dom (lib Call ⇒ qlist (qstring × lib Atom) ⇒ env qstring L ⇒ m (lib Call)) :=
+    λ (c:dom (lib Call)) (xs_args:dom (qlist (qstring × lib Atom))) (env:dom (env qstring L)) →
+      let UZ := qunzip ∙ xs_args in
+      let xs := first ∙ UZ in
+      let args := second ∙ UZ in
+      ls ← traverse ∙ new (L:=L) ∙ xs ;;
+      vDs ← traverse ∙ atomic ∙ args ;;
+      putEnv (m:=m) ∙ env ;;
+      traverse (t:=qlist) (m:=m) ∙ (modifyEnv (m:=m) ⊙ uncurry ∙ qinsert) $ qzip ∙ xs ∙ ls ;;
+      traverse (t:=qlist) (m:=m) ∙ (modifyStore (m:=m) ⊙ uncurry ∙ qinsert) $ qzip ∙ ls ∙ vDs ;;
+      ret (m:=m) ∙ c.
 
-  Definition step (c:Call) : m Call :=
+  Definition step : dom (lib Call ⇒ m (lib Call)) := λ (c:dom (lib Call)) →
     match c with
     | IfZC a tc fc =>
-        v <- promote =<< atomic a ;;
-        match v with
-        | NumV 0 => ret tc
-        | NumV _ => ret fc
-        | NatV => ret tc <|> ret fc
+        vD ← atomic ∙ a ;;
+        v ← promote (m₂:=m) ∙ (vD:dom (d (lib (Val L)))) ;;
+        match (v:dom (lib (Val L))) with
+        | NumV 0 => ret (m:=m) ∙ (tc:dom (lib Call))
+        | NumV _ => ret (m:=m) ∙ (fc:dom (lib Call))
+        | NatV => (ret (m:=m) ∙ (tc:dom (lib Call)) m+ ret (m:=m) ∙ (fc:dom (lib Call))) : dom (m (lib Call))
         | _ => mzero
         end
     | LamAppC f a ka =>
-        r <- coerceLamCloV =<< promote =<< atomic f ;; 
-        let '(x, k, c, env) := r in
-        stepApply c [(x, a); (k, ka)] env
+        vD ← atomic ∙ f ;;
+        v ← promote ∙ vD ;;
+        r ← coerceLamCloV ∙ v ;;
+        prod_elim4 ∙ r $ λ x k c env →
+          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ (k ,, (ka:dom (lib Atom))) ∷ qnil) ∙ env
     | KonAppC k a =>
-        r <- coerceKonCloV =<< promote =<< atomic k ;;
-        let '(x, c, env) := r in
-        stepApply c [(x, a)] env
-    | HaltC a => ret $ HaltC a
+        vD ← atomic ∙ k ;;
+        v ← promote ∙ vD ;;
+        r ← coerceKonCloV ∙ v ;;
+        prod_elim3 ∙ r $ λ x c env →
+          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ qnil) ∙ env
+    | HaltC a => ret (m:=m) $ (HaltC a:dom (lib (Call)))
     end.
   
 End S.
 
+(*
 Parameter monad_refine : 
   forall (m1:Type -> Type) (m2:Type -> Type) `{! Monad m1 ,! Monad m2 },
   Prop.
@@ -150,3 +159,4 @@ Section Thm.
   Definition thm : transition (step delt_con) ≤ transition (step delt_abs).
   Admitted.
 End Thm.
+*)
