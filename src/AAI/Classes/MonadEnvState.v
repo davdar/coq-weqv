@@ -5,7 +5,7 @@ Require Import FP.Data.Product.
 Require Import FP.Data.Option.
 Require Import FP.Core.
 
-Definition env N L := qlist (N × L).
+Definition env N L := list (N × L).
 
 Class MonadEnvState N L m `{! Monad m } :=
   { getEnv : dom (m (env N L))
@@ -20,5 +20,5 @@ Section MonadEnvState.
     putEnv $ f ∙ e.
   
   Definition lookupEnv `{! DecEqv (dom N) ,! MonadPlus m } : dom (N ⇒ m L) := λ n → 
-    (liftOption ⊙ qlookup ∙ n) =<< getEnv.
+    (liftOption ⊙ llookup ∙ n) =<< getEnv.
 End MonadEnvState.

@@ -5,7 +5,7 @@ Require Import FP.Data.Product.
 Require Import FP.Data.Option.
 Require Import FP.Core.
 
-Definition store (D:qtype -> qtype) L V := qlist (L × D V).
+Definition store (D:qtype -> qtype) L V := list (L × D V).
 
 Class MonadStoreState D L V m :=
   { getStore : dom (m (store D L V))
@@ -20,5 +20,5 @@ Section MonadStoreState.
     putStore $ f ∙ e.
   
   Definition lookupStore `{! DecEqv (dom L) ,! MonadPlus m } : dom (L ⇒ m (D V)) := λ n → 
-    (liftOption ⊙ qlookup ∙ n) =<< getStore.
+    (liftOption ⊙ llookup ∙ n) =<< getStore.
 End MonadStoreState.

@@ -24,7 +24,7 @@ with Atom :=
   | VarA (x:dom qstring)
   | LamA (x:dom qstring) (k:dom qstring) (c:Call)
   | KonA (x:dom qstring) (c:Call)
-  | PrimA (o:Op) (args:list Atom).
+  | PrimA (o:Op) (args:vlist Atom).
 
 Inductive Val L :=
   | NumV (n:nat)
@@ -58,7 +58,7 @@ Class Analysis (d:qtype -> qtype) (L:qtype) (T:qtype) (m:qtype -> qtype) :=
 
 Section S.
   Context {d L T m} `{! Analysis d L T m }.
-  Context (delt:dom (lib Op ⇒ qlist (lib (Val L)) ⇒ qoption (lib (Val L)))). 
+  Context (delt:dom (lib Op ⇒ list (lib (Val L)) ⇒ qoption (lib (Val L)))). 
   
   Definition coerceLamCloV : dom (lib (Val L) ⇒ m (qstring × qstring × lib Call × env qstring L)) := 
     λ (x : dom (lib (Val L))) →
@@ -87,24 +87,24 @@ Section S.
         env ← getEnv ;;
         ret (m:=m) $ ret (m:=d) $ (KonCloV x c env : dom (lib (Val L)))
     | PrimA o args =>
-        let vDMs : dom (qlist (m (d (lib (Val L))))) := lmap _atomic args in
+        let vDMs : dom (list (m (d (lib (Val L))))) := vlmap _atomic args in
         vDs ← sequence ∙ vDMs ;;
-        let vsD : dom (d (qlist (lib (Val L)))) := sequence (t:=qlist) (m:=d) ∙ vDs in
+        let vsD : dom (d (list (lib (Val L)))) := sequence (t:=list) (m:=d) ∙ vDs in
         let vMD : dom (d (qoption (lib (Val L)))) := mmap (m:=d) ∙ (delt ∙ o) ∙ vsD in
         liftOption $ sequence ∙ vMD
     end.
   Definition atomic : dom (lib Atom ⇒ m (d (lib (Val L)))) := λ (a:dom (lib Atom)) → _atomic a.
 
-  Definition stepApply : dom (lib Call ⇒ qlist (qstring × lib Atom) ⇒ env qstring L ⇒ m (lib Call)) :=
-    λ (c:dom (lib Call)) (xs_args:dom (qlist (qstring × lib Atom))) (env:dom (env qstring L)) →
-      let UZ := qunzip ∙ xs_args in
+  Definition stepApply : dom (lib Call ⇒ list (qstring × lib Atom) ⇒ env qstring L ⇒ m (lib Call)) :=
+    λ (c:dom (lib Call)) (xs_args:dom (list (qstring × lib Atom))) (env:dom (env qstring L)) →
+      let UZ := unzip ∙ xs_args in
       let xs := first ∙ UZ in
       let args := second ∙ UZ in
       ls ← traverse ∙ new (L:=L) ∙ xs ;;
       vDs ← traverse ∙ atomic ∙ args ;;
       putEnv (m:=m) ∙ env ;;
-      traverse (t:=qlist) (m:=m) ∙ (modifyEnv (m:=m) ⊙ uncurry ∙ qinsert) $ qzip ∙ xs ∙ ls ;;
-      traverse (t:=qlist) (m:=m) ∙ (modifyStore (m:=m) ⊙ uncurry ∙ qinsert) $ qzip ∙ ls ∙ vDs ;;
+      traverse (t:=list) (m:=m) ∙ (modifyEnv (m:=m) ⊙ uncurry ∙ linsert) $ zip ∙ xs ∙ ls ;;
+      traverse (t:=list) (m:=m) ∙ (modifyStore (m:=m) ⊙ uncurry ∙ linsert) $ zip ∙ ls ∙ vDs ;;
       ret (m:=m) ∙ c.
 
   Definition step : dom (lib Call ⇒ m (lib Call)) := λ (c:dom (lib Call)) →
@@ -123,13 +123,13 @@ Section S.
         v ← promote ∙ vD ;;
         r ← coerceLamCloV ∙ v ;;
         prod_elim4 ∙ r $ λ x k c env →
-          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ (k ,, (ka:dom (lib Atom))) ∷ qnil) ∙ env
+          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ (k ,, (ka:dom (lib Atom))) ∷ nil) ∙ env
     | KonAppC k a =>
         vD ← atomic ∙ k ;;
         v ← promote ∙ vD ;;
         r ← coerceKonCloV ∙ v ;;
         prod_elim3 ∙ r $ λ x c env →
-          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ qnil) ∙ env
+          stepApply ∙ c ∙ ((x ,, (a:dom (lib Atom))) ∷ nil) ∙ env
     | HaltC a => ret (m:=m) $ (HaltC a:dom (lib (Call)))
     end.
   
