@@ -3,17 +3,18 @@ Definition rel_neg {A} (R:relation A) : relation A := fun x y => not (R x y).
 Definition proper {A:Type} (R:relation A) (x:A) := R x x.
 Arguments proper {A} R x /.
 
-Class LibReflexive {A} (R:relation A) := libReflexivity : forall (x:A), R x x.
+Class LibReflexive {A} (R:relation A) := libReflexivity : forall {x:A}, R x x.
 Arguments LibReflexive {A} R /.
 Ltac LibReflexivity := apply libReflexivity.
 
-Class Symmetric {A} (R:relation A) := symmetry : forall (x y:A), R x y -> R y x.
+Class Symmetric {A} (R:relation A) := symmetry : forall {x y:A}, R x y -> R y x.
 Arguments Symmetric {A} R /.
 Ltac Symmetry := apply symmetry.
 
-Class Transitive {A} (R:relation A) := transitivity : forall (x y z:A), R x y -> R y z -> R x z.
+Class Transitive {A} (R:relation A) := transitivity : forall {x:A} (y:A) {z:A}, 
+  R x y -> R y z -> R x z.
 Arguments Transitive {A} R /.
-Ltac Transitivity y := apply (transitivity _ y _).
+Ltac Transitivity y := apply (transitivity y).
 
 Class Equivalence {A} (R:relation A) :=
   { Equivalence_LibReflexive :> LibReflexive R
@@ -30,7 +31,7 @@ Infix "≃" := eqv (at level 50, no associativity).
 Infix "≄" := (rel_neg eqv) (at level 50, no associativity).
 
 Class Reflexive {A:Type} `{! Eqv A } (R:relation A) := 
-  reflexivity : forall x y, eqv x y -> R x y.
+  reflexivity : forall {x y}, eqv x y -> R x y.
 Arguments Reflexive {A _} R /.
 Ltac Reflexivity := apply reflexivity.
 

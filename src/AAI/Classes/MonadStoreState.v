@@ -9,13 +9,13 @@ Definition store (D:qtype -> qtype) L V := qlist (L × D V).
 
 Class MonadStoreState D L V m :=
   { getStore : dom (m (store D L V))
-  ; putStore : dom (store D L V ⇒ m qunit)
+  ; putStore : dom (store D L V ⇒ m unit)
   }.
 
 Section MonadStoreState.
   Context {D L V m} `{! Monad m ,! MonadStoreState D L V m }.
 
-  Definition modifyStore : dom ((store D L V ⇒ store D L V) ⇒ m qunit) := λ f →
+  Definition modifyStore : dom ((store D L V ⇒ store D L V) ⇒ m unit) := λ f →
     e ← getStore ;;
     putStore $ f ∙ e.
   

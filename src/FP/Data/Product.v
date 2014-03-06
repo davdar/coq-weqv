@@ -1,4 +1,5 @@
 Require Import FP.Core.
+Require Import FP.Classes.Galois.
 
 Infix "v×" := (prod : Type -> Type -> Type) (at level 70, right
 associativity).
@@ -29,8 +30,8 @@ Definition prod_eta {A B} (p:dom (A × B)) : (first ∙ p ,, second ∙ p) ≃ p
 Proof.
   destruct p ; simpl ; qproper_elim.
 Qed.
-Definition prod_first {A B} (a:dom A) (b:dom B) : first ∙ (a ,, b) ≃ a := libReflexivity a.
-Definition prod_second {A B} (a:dom A) (b:dom B) : second ∙ (a ,, b) ≃ b := libReflexivity b.
+Definition prod_first {A B} (a:dom A) (b:dom B) : first ∙ (a ,, b) ≃ a := libReflexivity.
+Definition prod_second {A B} (a:dom A) (b:dom B) : second ∙ (a ,, b) ≃ b := libReflexivity.
 Global Opaque pair.
 Global Opaque prod_elim.
 Global Opaque first.
@@ -38,10 +39,10 @@ Global Opaque second.
 
 Ltac ProdRewrite :=
   match goal with
-  | |- ⟨ prod_elim ∙ ?p ∙ ?f ∈ _ ⋈ _ ⟩ => ReplaceBy (prod_beta p f)
-  | |- ⟨ first ∙ ?p ,, second ∙ ?p ∈ _ ⋈ _ ⟩ => ReplaceBy (prod_eta p)
-  | |- ⟨ first ∙ (?a ,, ?b) ∈ _ ⋈ _ ⟩ => ReplaceBy (prod_first a b)
-  | |- ⟨ second ∙ (?a ,, ?b) ∈ _ ⋈ _ ⟩ => ReplaceBy (prod_second a b)
+  | |- ⟨ prod_elim ∙ ?p ∙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (prod_beta p f)
+  | |- ⟨ first ∙ ?p ,, second ∙ ?p ∈ _ |_| _ ⟩ => ReplaceBy (prod_eta p)
+  | |- ⟨ first ∙ (?a ,, ?b) ∈ _ |_| _ ⟩ => ReplaceBy (prod_first a b)
+  | |- ⟨ second ∙ (?a ,, ?b) ∈ _ |_| _ ⟩ => ReplaceBy (prod_second a b)
   end.
 
 Definition prod_elim3 {A B C D} : dom ((A × B × C) ⇒ (A ⇒ B ⇒ C ⇒ D) ⇒ D) :=
@@ -50,3 +51,21 @@ Definition prod_elim4 {A B C D E} : dom ((A × B × C × D) ⇒ (A ⇒ B ⇒ C �
   λ abcd f → prod_elim3 ∙ abcd $ λ a b cd → prod_elim ∙ cd $ λ c d → f ∙ a ∙ b ∙ c ∙ d.
 Definition uncurry {A B C} : dom ((A ⇒ B ⇒ C) ⇒ ((A × B) ⇒ C)) :=
   λ f ab → prod_elim ∙ ab ∙ f.
+
+Section Galois.
+  Context {A₁ A₂ B₁ B₂} `{! Galois A₁ A₂ ,! Galois B₁ B₂ }.
+  
+  Definition prod_galoisα : dom ((A₁ × B₁) ⇒ (A₂ × B₂)) :=
+    λ axb → prod_elim ∙ axb $ λ a b → (galoisα ∙ a ,, galoisα ∙ b).
+  Definition prod_galoisγ : dom ((A₂ × B₂) ⇒ (A₁ × B₁)) :=
+    λ axb → prod_elim ∙ axb $ λ a b → (galoisγ ∙ a ,, galoisγ ∙ b).
+  Global Instance : Galois (A₁ × B₁) (A₂ × B₂) :=
+    { galoisα := @prod_galoisα
+    ; galoisγ := @prod_galoisγ
+    }.
+  Proof.
+    Local Ltac Hammer := repeat (Re fail || ProdRewrite || GaloisRewrite ; qproper_elim).
+    - Hammer.
+    - Hammer.
+  Defined.
+End Galois.

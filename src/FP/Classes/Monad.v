@@ -1,4 +1,5 @@
 Require Import FP.Core.
+Require Import FP.Data.Unit.
 
 Class Monad (m:qtype -> qtype) :=
   { ret : forall {A}, dom (A ⇒ m A)
@@ -8,8 +9,8 @@ Class Monad (m:qtype -> qtype) :=
   ; bind_associativity : forall {A B C} (aM:dom (m A)) (k₁:dom (A ⇒ m B)) (k₂:dom (B ⇒ m C)), 
       bind ∙ (bind ∙ aM ∙ k₁) ∙ k₂ ≃ bind ∙ aM ∙ (λ a → bind ∙ (k₁ ∙ a) ∙ k₂)
   }.
-Arguments ret : simpl never.
-Arguments bind : simpl never.
+Global Opaque ret.
+Global Opaque bind.
 
 Notation "e >>= k" := (bind ∙ e ∙ k) (at level 90, right associativity).
 Notation "x ← e₁  ;; e₂" := (bind ∙ e₁ ∙ (λ x → e₂)) 
@@ -17,9 +18,9 @@ Notation "x ← e₁  ;; e₂" := (bind ∙ e₁ ∙ (λ x → e₂))
 
 Ltac MonadRewrite :=
   match goal with
-  | |- ⟨ ?aM >>= ret ∈ _ ⋈ _ ⟩ => ReplaceBy (bind_ret_kon aM)
-  | |- ⟨ ret ∙ ?a >>= ?k ∈ _ ⋈ _ ⟩ => ReplaceBy (bind_ret_arg a k)
-  | |- ⟨ bind ∙ (bind ∙ ?aM ∙ ?k₁) ∙ ?k₂ ∈ _ ⋈ _ ⟩ => ReplaceBy (bind_associativity aM k₁ k₂)
+  | |- ⟨ ?aM >>= ret ∈ _ |_| _ ⟩ => ReplaceBy (bind_ret_kon aM)
+  | |- ⟨ ret ∙ ?a >>= ?k ∈ _ |_| _ ⟩ => ReplaceBy (bind_ret_arg a k)
+  | |- ⟨ bind ∙ (bind ∙ ?aM ∙ ?k₁) ∙ ?k₂ ∈ _ |_| _ ⟩ => ReplaceBy (bind_associativity aM k₁ k₂)
   end.
 
 Section Monad.
@@ -54,3 +55,8 @@ Notation "e₁ m+ e₂" := (mplus ∙ e₁ ∙ e₂) (at level 60, right associa
 
 Class MonadMorphism m₁ m₂ `{! Monad m₁ ,! Monad m₁ } :=
   { promote : forall {A}, dom (m₁ A ⇒ m₂ A) }.
+
+Class MonadState S m `{! Monad m } :=
+  { get : dom (m S)
+  ; put : dom (S ⇒ m unit)
+  }.

@@ -9,13 +9,13 @@ Definition env N L := qlist (N × L).
 
 Class MonadEnvState N L m `{! Monad m } :=
   { getEnv : dom (m (env N L))
-  ; putEnv : dom (env N L ⇒ m qunit)
+  ; putEnv : dom (env N L ⇒ m unit)
   }.
 
 Section MonadEnvState.
   Context {N L m} `{! Monad m ,! MonadEnvState N L m }.
 
-  Definition modifyEnv : dom ((env N L ⇒ env N L) ⇒ m qunit) := λ f →
+  Definition modifyEnv : dom ((env N L ⇒ env N L) ⇒ m unit) := λ f →
     e ← getEnv ;;
     putEnv $ f ∙ e.
   

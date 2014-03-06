@@ -1,4 +1,4 @@
-PACKAGES   := FP FP/Core FP/Classes FP/Data AAI/Classes AAI/Lang
+PACKAGES   := FP FP/Core FP/Classes FP/Data AAI/Classes AAI/Data AAI/Lang
 FILES      := $(foreach pkg,$(PACKAGES),$(patsubst %.v,%,$(wildcard $(pkg)/*.v))) \
 	            $(patsubst %.v,%,$(wildcard *.v))
 SOURCES    := $(FILES:%=%.v) 
