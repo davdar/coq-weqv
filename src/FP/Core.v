@@ -6,3 +6,5 @@ Require Export FP.Core.Relations.
 Require Export FP.Core.Deriving.
 Require Export FP.Core.Rewrite.
 Require Export FP.Core.Tactic.
+Require Export FP.Core.Notation.
+Require Export FP.Core.Function.

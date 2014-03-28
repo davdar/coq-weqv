@@ -12,15 +12,14 @@ Class Monad (m:qtype -> qtype) :=
 Global Opaque ret.
 Global Opaque bind.
 
-Notation "e >>= k" := (bind ∙ e ∙ k) (at level 90, right associativity).
-Notation "x ← e₁  ;; e₂" := (bind ∙ e₁ ∙ (λ x → e₂)) 
-  (at level 100, e₁ at next level, right associativity).
+Notation "e >>= k" := (bind ∙ e ∙ k).
+Notation "x ← e₁  ;; e₂" := (bind ∙ e₁ ∙ (λ x → e₂)).
 
 Ltac MonadRewrite :=
   match goal with
-  | |- ⟨ ?aM >>= ret ∈ _ |_| _ ⟩ => ReplaceBy (bind_ret_kon aM)
-  | |- ⟨ ret ∙ ?a >>= ?k ∈ _ |_| _ ⟩ => ReplaceBy (bind_ret_arg a k)
-  | |- ⟨ bind ∙ (bind ∙ ?aM ∙ ?k₁) ∙ ?k₂ ∈ _ |_| _ ⟩ => ReplaceBy (bind_associativity aM k₁ k₂)
+  | |- ⟨ ?aM >>= ret IN _ |_| _ ⟩ => ReplaceBy (bind_ret_kon aM)
+  | |- ⟨ ret ∙ ?a >>= ?k IN _ |_| _ ⟩ => ReplaceBy (bind_ret_arg a k)
+  | |- ⟨ bind ∙ (bind ∙ ?aM ∙ ?k₁) ∙ ?k₂ IN _ |_| _ ⟩ => ReplaceBy (bind_associativity aM k₁ k₂)
   end.
 
 Section Monad.
@@ -38,9 +37,9 @@ Section Monad.
   
   Definition kret {A B} : dom ((A ⇒ B) ⇒ (A ⇒ m B)) := λ f → ret ⊙ f.
 End Monad.
-Notation "k =<< e" := (extend ∙ k ∙ e) (at level 70, right associativity).
-Notation "g m⊙ f" := (mcompose ∙ g ∙ f) (at level 60, right associativity).
-Notation "e₁  ;; e₂" := (_ ← e₁ ;; e₂) (at level 100, right associativity).
+Notation "k =<< e" := (extend ∙ k ∙ e).
+Notation "g m⊙ f" := (mcompose ∙ g ∙ f).
+Notation "e₁  ;; e₂" := (_ ← e₁ ;; e₂).
 
 Section Laws.
   Context {m} `{! Monad m }.
@@ -48,35 +47,30 @@ Section Laws.
   Definition mcompose_associativity {A B C D} 
   (h:dom (C ⇒ m D)) (g:dom (B ⇒ m C)) (f:dom (A ⇒ m B)) : ((h m⊙ g) m⊙ f) ≃ (h m⊙ (g m⊙ f)).
   Proof.
-    repeat (Re fail || MonadRewrite ; qproper_elim).
+    Re fail || MonadRewrite.
   Qed.
 
   Definition mcompose_left_unit {A B} (f:dom (A ⇒ m B)) : (ret m⊙ f) ≃ f.
   Proof.
-    repeat (Re fail || MonadRewrite ; qproper_elim).
+    Re fail || MonadRewrite.
   Qed.
   
   Definition mcompose_right_unit {A B} (f:dom (A ⇒ m B)) : (f m⊙ ret) ≃ f.
   Proof.
-    repeat (Re fail || MonadRewrite ; qproper_elim).
+    Re fail || MonadRewrite.
   Qed.
 End Laws.
 
-Global Opaque kret.
-Global Opaque mcompose.
-
 Ltac KleisliRewrite :=
   match goal with
-  | |- ⟨ (?h m⊙ ?g) m⊙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (mcompose_associativity h g f)
-  | |- ⟨ ret m⊙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (mcompose_left_unit f)
-  | |- ⟨ ?f m⊙ ret ∈ _ |_| _ ⟩ => ReplaceBy (mcompose_right_unit f)
+  | |- ⟨ (?h m⊙ ?g) m⊙ ?f IN _ |_| _ ⟩ => ReplaceBy (mcompose_associativity h g f)
+  | |- ⟨ ret m⊙ ?f IN _ |_| _ ⟩ => ReplaceBy (mcompose_left_unit f)
+  | |- ⟨ ?f m⊙ ret IN _ |_| _ ⟩ => ReplaceBy (mcompose_right_unit f)
   end.
 
-Ltac KleisliRewrite2 :=
+Ltac KleisliUnassoc :=
   match goal with
-  | |- ⟨ ?h m⊙ ?g m⊙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (symmetry (mcompose_associativity h g f))
-  | |- ⟨ ret m⊙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (mcompose_left_unit f)
-  | |- ⟨ ?f m⊙ ret ∈ _ |_| _ ⟩ => ReplaceBy (mcompose_right_unit f)
+  | |- ⟨ ?h m⊙ ?g m⊙ ?f IN _ |_| _ ⟩ => ReplaceBy (symmetry (mcompose_associativity h g f))
   end.
   
 Class MonadPlus m `{! Monad m } :=
@@ -86,9 +80,15 @@ Class MonadPlus m `{! Monad m } :=
   ; mplus_mzero_right : forall {A} (aM:dom (m A)), mplus ∙ aM ∙ mzero ≃ aM
   ; mplus_distributivity : forall {A B} (aM₁ aM₂:dom (m A)) (k:dom (A ⇒ m B)), 
       bind ∙ (mplus ∙ aM₁ ∙ aM₂) ∙ k ≃ mplus ∙ (bind ∙ aM₁ ∙ k) ∙ (bind ∙ aM₂ ∙ k)
+  ; bind_mzero_left : forall {A B} (k:dom (A ⇒ m B)), bind ∙ mzero ∙ k ≃ mzero
+  ; bind_mzero_right : forall {A B} (aM:dom (m A)), bind ∙ aM ∙ (λ _ → mzero (A:=B)) ≃ mzero
   }.
+Ltac MonadPlusRewrite :=
+  match goal with
+  | |- ⟨ mzero >>= ?k IN _ |_| _ ⟩ => ReplaceBy (bind_mzero_left k)
+  end.
 
-Notation "e₁ m+ e₂" := (mplus ∙ e₁ ∙ e₂) (at level 60, right associativity).
+Notation "e₁ m+ e₂" := (mplus ∙ e₁ ∙ e₂).
 
 Class MonadMorphism m₁ m₂ `{! Monad m₁ ,! Monad m₁ } :=
   { promote : forall {A}, dom (m₁ A ⇒ m₂ A) }.
@@ -97,3 +97,8 @@ Class MonadState S m `{! Monad m } :=
   { get : dom (m S)
   ; put : dom (S ⇒ m unit)
   }.
+
+Class MonadRet t :=
+  { mret : forall {m} `{! Monad m }, forall {A}, dom (m A ⇒ t m A) 
+  }.
+Global Opaque mret.

@@ -1,3 +1,5 @@
+Require Import FP.Core.
+
 Definition Function A B := A -> B.
 
 Definition vapply {A B} (f:A -> B) (x:A) : B := f x.

@@ -31,7 +31,7 @@ Definition TimeStateMonadT_inv {T m A} (aM:dom (stateMonadT T m A))
 : unTimeStateMonadT ∙ (TimeStateMonadT ∙ aM) ≃ aM := libReflexivity.
 Ltac TimeStateMonadRewrite :=
   match goal with
-  |- ⟨ unTimeStateMonadT ∙ (TimeStateMonadT ∙ ?aM) ∈ _ |_| _ ⟩ => ReplaceBy (TimeStateMonadT_inv aM)
+  |- ⟨ unTimeStateMonadT ∙ (TimeStateMonadT ∙ ?aM) IN _ |_| _ ⟩ => ReplaceBy (TimeStateMonadT_inv aM)
   end.
   
 Section TimeStateMonadT.
@@ -109,8 +109,7 @@ Section Galois.
       ; galoisγ := timeStateMonadT_galoisγ
       }.
     Proof.
-      Local Ltac Hammer := repeat 
-        (Re fail || GaloisRewrite || StateMonadRewrite || TimeStateMonadRewrite ; qproper_elim).
+      Local Ltac Hammer := Re fail || GaloisRewrite || StateMonadRewrite || TimeStateMonadRewrite.
       - Hammer.
         apply (injectionLte unTimeStateMonadT) ; Hammer.
         apply (injectionLte unStateMonadT) ; Hammer.
@@ -131,8 +130,7 @@ Section Galois.
         ; galoisγ := galoisγ : dom (ss m₂ (A₂ × T₂) ⇒ ss m₁ (A₁ × T₁))
         }.
     Proof.
-      Local Ltac Hammer := repeat
-        (Re fail || GaloisRewrite ; qproper_elim).
+      Local Ltac Hammer := Re fail || GaloisRewrite.
       - Hammer.
         apply qmonotonic_intro ; Hammer.
       - Hammer.

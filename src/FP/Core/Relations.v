@@ -1,3 +1,5 @@
+Require Import FP.Core.Notation.
+
 Definition relation (A:Type) := A -> A -> Prop.
 Definition rel_neg {A} (R:relation A) : relation A := fun x y => not (R x y).
 Definition proper {A:Type} (R:relation A) (x:A) := R x x.
@@ -27,8 +29,8 @@ Class Eqv (A:Type) :=
   ; Eqv_Equivalence :> Equivalence eqv
   }.
 Arguments eqv {A Eqv} f g : simpl never.
-Infix "≃" := eqv (at level 50, no associativity).
-Infix "≄" := (rel_neg eqv) (at level 50, no associativity).
+Infix "≃" := eqv.
+Infix "≄" := (rel_neg eqv).
 
 Class Reflexive {A:Type} `{! Eqv A } (R:relation A) := 
   reflexivity : forall {x y}, eqv x y -> R x y.
@@ -45,7 +47,7 @@ Class Lte (A:Type) `{! Eqv A } :=
   ; Lte_PreOrder :> PreOrder lte
   }.
 Arguments lte {A Eqv0 Lte} f g : simpl never.
-Infix "⊑" := lte (at level 50, no associativity).
+Infix "⊑" := lte.
 
 Instance : forall A `{! Eqv A } (R:relation A) `{! PreOrder R }, LibReflexive R.
 Proof.
@@ -80,4 +82,4 @@ Class DecEqv A `{! Eqv A } := { dec_eqv : forall (x y:A), x ≃ y \/ x ≄ y }.
 Definition vrespectful {A B} (R1:relation A) (R2:relation B) : relation (A -> B) :=
   fun (f g:A -> B) => forall x y, R1 x y -> R2 (f x) (g y).
 Arguments vrespectful {A B} R1 R2 f g : simpl never.
-Infix "v⇉" := vrespectful (at level 60, right associativity).
+Infix "v⇉" := vrespectful.

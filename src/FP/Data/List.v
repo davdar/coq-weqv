@@ -4,7 +4,7 @@ Require Import FP.Data.Option.
 Require Import FP.Classes.Traversable.
 
 Section Vanilla.
-  Infix "v∷" := cons (at level 60, right associativity).
+  Infix "v∷" := cons.
   Notation "v[ x , .. , y ]" := (cons x .. (cons y nil) ..).
   
   Definition vlmap {A B} (f:A -> B) : list A -> list B :=
@@ -49,7 +49,7 @@ Admitted.
 Definition lmap {A B} : dom ((A ⇒ B) ⇒ list A ⇒ list B) := 
   λ (f:dom (A ⇒ B)) (x:dom (list A)) → vlmap (rfun f) x : dom (list B).
 
-Notation "x ∷ xs" := (cons ∙ x ∙ xs) (at level 60, right associativity).
+Notation "x ∷ xs" := (cons ∙ x ∙ xs).
 
 Instance : Traversable list.
 Admitted.

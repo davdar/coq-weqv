@@ -288,9 +288,9 @@ Definition app {Γ₁ Γ₂ Γ₃ τ₁ τ₂} `{! AutoRename Γ₁ Γ₃ ,! Aut
 (f:Γ₁ ⊢ τ₁ ⇒ τ₂) (e:Γ₂ ⊢ τ₁) : Γ₃ ⊢ τ₂ := App (lift f) (lift e).
   
 Local Notation "'tλ'  x .. y → e" := (abs (fun x => .. (abs (fun y => e)) ..))
-  (x binder, y binder, at level 100, right associativity).
-Local Infix "∙" := app (at level 20, left associativity).
-Local Notation "^ x" := (lift x) (at level 1).
+  (at level 98, x binder, y binder, right associativity).
+Local Infix "∙" := app.
+Local Notation "^ x" := (lift x) (at level 19).
 
 (********** simple functions and laws **********)
 

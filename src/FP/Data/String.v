@@ -1,6 +1,8 @@
-Require Export Coq.Strings.String.
 Require Import FP.Core.
+Require Import Coq.Strings.String.
 
-Definition qstring := lib string.
-Instance : DecEqv (dom qstring).
+Definition vstring := Coq.Strings.String.string.
+
+Definition string := lib vstring.
+Instance : DecEqv (dom string).
 Admitted.

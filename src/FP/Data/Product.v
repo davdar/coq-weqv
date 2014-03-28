@@ -1,8 +1,7 @@
 Require Import FP.Core.
 Require Import FP.Classes.Galois.
 
-Infix "v×" := (prod : Type -> Type -> Type) (at level 70, right
-associativity).
+Infix "v×" := (prod : Type -> Type -> Type).
 
 Inductive prod_eqv {A B} `{! Eqv A ,! Eqv B } : relation (A v× B) :=
   | ProdEqv : forall xl xr yl yr, xl ≃ yl -> xr ≃ yr -> prod_eqv (xl, xr) (yl, yr).
@@ -14,9 +13,9 @@ Instance : forall A B `{! Eqv A ,! Lte A ,! Eqv B ,! Lte B }, Lte (A v× B) := {
 Admitted.
 
 Definition qprod (A B:qtype) : qtype := {| qdom := dom A v× dom B |}.
-Infix "×" := qprod (at level 80, right associativity).
+Infix "×" := qprod.
 Definition pair {A B} : dom (A ⇒ B ⇒ (A × B)) := λ a b → ((a, b) : dom (A × B)).
-Notation "x ,, y" := (pair ∙ x ∙ y) (at level 190, right associativity).
+Notation "x ,, y" := (pair ∙ x ∙ y).
 Definition prod_elim {A B C} : dom ((A × B) ⇒ (A ⇒ B ⇒ C) ⇒ C) :=
   λ ab f → match ab : dom (A × B) with (a,b) => f ∙ a ∙ b end.
 Definition first {A B} : dom ((A × B) ⇒ A) := λ ab → prod_elim ∙ ab ∙ (λ a _ → a).
@@ -39,10 +38,10 @@ Global Opaque second.
 
 Ltac ProdRewrite :=
   match goal with
-  | |- ⟨ prod_elim ∙ ?p ∙ ?f ∈ _ |_| _ ⟩ => ReplaceBy (prod_beta p f)
-  | |- ⟨ first ∙ ?p ,, second ∙ ?p ∈ _ |_| _ ⟩ => ReplaceBy (prod_eta p)
-  | |- ⟨ first ∙ (?a ,, ?b) ∈ _ |_| _ ⟩ => ReplaceBy (prod_first a b)
-  | |- ⟨ second ∙ (?a ,, ?b) ∈ _ |_| _ ⟩ => ReplaceBy (prod_second a b)
+  | |- ⟨ prod_elim ∙ ?p ∙ ?f IN _ |_| _ ⟩ => ReplaceBy (prod_beta p f)
+  | |- ⟨ first ∙ ?p ,, second ∙ ?p IN _ |_| _ ⟩ => ReplaceBy (prod_eta p)
+  | |- ⟨ first ∙ (?a ,, ?b) IN _ |_| _ ⟩ => ReplaceBy (prod_first a b)
+  | |- ⟨ second ∙ (?a ,, ?b) IN _ |_| _ ⟩ => ReplaceBy (prod_second a b)
   end.
 
 Definition prod_elim3 {A B C D} : dom ((A × B × C) ⇒ (A ⇒ B ⇒ C ⇒ D) ⇒ D) :=
@@ -64,7 +63,7 @@ Section Galois.
     ; galoisγ := @prod_galoisγ
     }.
   Proof.
-    Local Ltac Hammer := repeat (Re fail || ProdRewrite || GaloisRewrite ; qproper_elim).
+    Local Ltac Hammer := Re fail || ProdRewrite || GaloisRewrite.
     - Hammer.
     - Hammer.
   Defined.

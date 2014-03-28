@@ -21,16 +21,16 @@ Inductive Call :=
   | HaltC (a:Atom)
 with Atom :=
   | LitA (n:nat)
-  | VarA (x:dom qstring)
-  | LamA (x:dom qstring) (k:dom qstring) (c:Call)
-  | KonA (x:dom qstring) (c:Call)
+  | VarA (x:dom string)
+  | LamA (x:dom string) (k:dom string) (c:Call)
+  | KonA (x:dom string) (c:Call)
   | PrimA (o:Op) (args:vlist Atom).
 
 Inductive Val L :=
   | NumV (n:nat)
   | NatV
-  | LamCloV (x:dom qstring) (k:dom qstring) (c:dom (lib Call)) (env:dom (env qstring L))
-  | KonCloV (x:dom qstring) (c:dom (lib Call)) (env:dom (env qstring L)).
+  | LamCloV (x:dom string) (k:dom string) (c:dom (lib Call)) (env:dom (env string L))
+  | KonCloV (x:dom string) (c:dom (lib Call)) (env:dom (env string L)).
 Arguments NumV {L} n.
 Arguments NatV {L}.
 Arguments LamCloV {L} x k c env.
@@ -47,11 +47,11 @@ Class Analysis (d:qtype -> qtype) (L:qtype) (T:qtype) (m:qtype -> qtype) :=
   ; Analysis_d_Traversable     :> Traversable d
   ; Analysis_L_DecEq           :> DecEqv (dom L)
   ; Analysis_T_Peano           :> Peano T
-  ; Analysis_T_Addressable     :> Addressable qstring T L
+  ; Analysis_T_Addressable     :> Addressable string T L
   ; Analysis_m_Monad           :> Monad m
   ; Analysis_m_MonadPlus       :> MonadPlus m
   ; Analysis_m_MonadMorphism   :> MonadMorphism d m
-  ; Analysis_m_MonadEnvState   :> MonadEnvState qstring L m
+  ; Analysis_m_MonadEnvState   :> MonadEnvState string L m
   ; Analysis_m_MonadStoreState :> MonadStoreState d L (lib (Val L)) m
   ; Analysis_m_MonadTimeState  :> MonadTimeState T m
   }.
@@ -60,14 +60,14 @@ Section S.
   Context {d L T m} `{! Analysis d L T m }.
   Context (delt:dom (lib Op ⇒ list (lib (Val L)) ⇒ qoption (lib (Val L)))). 
   
-  Definition coerceLamCloV : dom (lib (Val L) ⇒ m (qstring × qstring × lib Call × env qstring L)) := 
+  Definition coerceLamCloV : dom (lib (Val L) ⇒ m (string × string × lib Call × env string L)) := 
     λ (x : dom (lib (Val L))) →
       match x with
       | LamCloV x k c ρ => ret ∙ (x ,, k ,, c ,, ρ)
       | _ => mzero
       end.
 
-  Definition coerceKonCloV : dom (lib (Val L) ⇒ m (qstring × lib Call × env qstring L)) :=
+  Definition coerceKonCloV : dom (lib (Val L) ⇒ m (string × lib Call × env string L)) :=
     λ (x : dom (lib (Val L))) →
       match x with
       | KonCloV x c ρ => ret ∙ (x ,, c ,, ρ)
@@ -95,8 +95,8 @@ Section S.
     end.
   Definition atomic : dom (lib Atom ⇒ m (d (lib (Val L)))) := λ (a:dom (lib Atom)) → _atomic a.
 
-  Definition stepApply : dom (lib Call ⇒ list (qstring × lib Atom) ⇒ env qstring L ⇒ m (lib Call)) :=
-    λ (c:dom (lib Call)) (xs_args:dom (list (qstring × lib Atom))) (env:dom (env qstring L)) →
+  Definition stepApply : dom (lib Call ⇒ list (string × lib Atom) ⇒ env string L ⇒ m (lib Call)) :=
+    λ (c:dom (lib Call)) (xs_args:dom (list (string × lib Atom))) (env:dom (env string L)) →
       let UZ := unzip ∙ xs_args in
       let xs := first ∙ UZ in
       let args := second ∙ UZ in
@@ -134,29 +134,3 @@ Section S.
     end.
   
 End S.
-
-(*
-Parameter monad_refine : 
-  forall (m1:Type -> Type) (m2:Type -> Type) `{! Monad m1 ,! Monad m2 },
-  Prop.
-Infix "⊏" := monad_refine (at level 70, no associativity).
-
-Parameter galois_refine :
-  forall {A B}, (A -> A) -> (B -> B) -> Prop.
-Infix "≤" := galois_refine (at level 70, no associativity).
-
-Section Thm.
-  Context {d_con L_con T_con m_con} `{! Analysis d_con L_con T_con m_con }.
-  Context (delt_con:Op -> list (Val L_con) -> option (Val L_con)). 
-  Context {ss_con} `{! Transition ss_con m_con }.
-
-  Context {d_abs L_abs T_abs m_abs} `{! Analysis d_abs L_abs T_abs m_abs }.
-  Context (delt_abs:Op -> list (Val L_abs) -> option (Val L_abs)). 
-  Context {ss_abs} `{! Transition ss_abs m_abs }.
-
-  Context (mrefine:m_con ⊏ m_abs).
-  
-  Definition thm : transition (step delt_con) ≤ transition (step delt_abs).
-  Admitted.
-End Thm.
-*)

@@ -4,8 +4,7 @@ Require Import FP.Data.Unit.
 Require Import FP.Classes.Monad.
 Require Import FP.Classes.Injection.
 
-Inductive v_stateMonadT (S:qtype) (m:qtype -> qtype) (A:qtype) :=
-  v_StateMonadT
+Inductive v_stateMonadT (S:qtype) (m:qtype -> qtype) (A:qtype) := v_StateMonadT
   { v_unStateMonadT : dom (S ⇒ m (A × S)) }.
 Arguments v_StateMonadT {S m A} _.
 Arguments v_unStateMonadT {S m A} _.
@@ -26,7 +25,7 @@ Definition StateMonadT_inv {S m A} (f:dom (S ⇒ m (A × S)))
 : unStateMonadT ∙ (StateMonadT ∙ f) ≃ f := libReflexivity.
 Ltac StateMonadRewrite :=
   match goal with
-  |- ⟨ unStateMonadT ∙ (StateMonadT ∙ ?f) ∈ _ |_| _ ⟩ => ReplaceBy (StateMonadT_inv f)
+  |- ⟨ unStateMonadT ∙ (StateMonadT ∙ ?f) IN _ |_| _ ⟩ => ReplaceBy (StateMonadT_inv f)
   end.
 
 Section StateMonadT.
@@ -49,9 +48,7 @@ Section StateMonadT.
     ; bind := @stateMonadT_bind
     }.
   Proof.
-    Local Ltac Hammer := 
-      repeat
-        (Re fail || ProdRewrite || MonadRewrite || StateMonadRewrite ; qproper_elim).
+    Local Ltac Hammer := Re fail || ProdRewrite || MonadRewrite || StateMonadRewrite.
     - intros ; simpl.
       apply (injectionEqv unStateMonadT).
       Hammer.
