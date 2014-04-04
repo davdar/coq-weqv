@@ -3,3 +3,5 @@
 *.glob
 src/Makefile.coq
 .DS_Store
+*.aux
+*.log
