@@ -4,8 +4,9 @@
 \usepackage{listings}
 \usepackage{stmaryrd}
 \usepackage{wasysym}
+\usepackage{galois/galois}
 
-\title{A Modular Monadic Framework for Abstract Interpretation (``Guts'' Draft)}
+\title{A Modular Monadic Framework for Abstract Interpretation \\ (Draft)}
 \author{David Darais}
 \date{\today}
 
@@ -15,35 +16,373 @@
 %%%%%%%%%%%%%%%%%%%% Abstract %%%%%%%%%%%%%%%%%%%%
 
 \begin{abstract}
-Abstract interpretation is important.  \textit{Modular} frameworks for
-\textit{deriving} computable abstract interpreters are also important. Previous
-work[PLDI 2013] demonstrates a framework that unifies several concepts in
-abstract interpretation through monads. However this approach lacks true
-modularity, both in the space of languages and the space of analyses, and the
-correctness of the approach is established (if at all) in an ad-hoc basis. This
-paper demonstrated a reformulation of the monadic frameork for abstract
-interpretation which is truly modular and where derived abstract interpreters
-are correct by construction. The key players responsible for recovering these
-qualities are a restricted class of monad transformers which are also Galois
-functor transformers, and whose monadic actions are isomorphic to a space of
-transitions in a pure (non-monadic) state space.
+Calculational approaches to abstract interpretation--pioneered by Cousot and
+Cousot[?]--enable the working language designer to systematically extract
+abstract interpreters induced by Galois connections. Despite the key property
+that calculated interpreters are correct by construction, the approach falls
+short in practice; the effort required to calculate often outweighs the
+correctness payoff. We present a reformulation of monadic abstract
+interpretation--a computational framework for abstract interpretation
+introduced by Sergey et al.[?]--which captures a large class of both
+automatically derivable and correct by construction abstract interpreters. We
+achieve this by constructing abstract interpreters and Galois connections
+side-by-side and in compositional fragments. Key players in our framework are a
+restricted class of monad transformers which are also Galois functor
+transformers, and whose monadic actions are isomorphic to transitions in a pure
+(non-monadic) state space.
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%% Introduction %%%%%%%%%%%%%%%%%%%%
 
 \section{Introduction}
 
-%%%%%%%%%%%%%%%%%%%% Overview of AI %%%%%%%%%%%%%%%%%%%%
+\subsection{Basic Order Theory}
 
-\section{Overview of Abstract Interpretation}
+\noindent [TODO: Partial Orders. Define ``discrete ordering''.]
 
-%%%%%%%%%%%%%%%%%%%% Overview of Monadic AI %%%%%%%%%%%%%%%%%%%%
+\noindent [TODO: Products.]
 
-\section{Overview of Monadic Abstract Interpretation}
+\noindent [TODO: Function Spaces.]
 
-%%%%%%%%%%%%%%%%%%%% A New Approach %%%%%%%%%%%%%%%%%%%%
+\noindent [TODO: Sets.]
 
-\section{A new approach to Monadic Abstract Interpretation}
+\noindent [TODO: Monotonicity.]
+
+\noindent [TODO: Fixpoints.]
+
+\subsection{Basic Abstract Interpretation Concepts}
+
+\noindent [TODO: Small-step semantics.]
+
+\noindent [TODO: Galois Connections.]
+
+\noindent [TODO: An extremely simple example (borrow this from Cousot).]
+
+\noindent [TODO: A calculational derivation of the previous example.]
+
+%%%%%%%%%%%%%%%%%%%% By Example %%%%%%%%%%%%%%%%%%%%
+
+\section{Monadic Abstract Interpretation By Example}
+
+To demonstrate our monadic abstract interpretation framework we guide the
+reader through the design and implementation of 0CFA for a CPS language with
+small-step semantics driven by three separate methodologies:
+%
+\begin{itemize}
+  \item Ad-hoc design and ``a posteriori'' verification
+  \item Calculation a la Cousot and Cousot
+  \item Using our monadic framework
+\end{itemize}
+%
+General computational, correctness and modularity properties of the framework
+are deferred to sections~\ref{section:computational},~\ref{section:correctness}
+and \ref{section:modularity}.
+%
+0CFA is chosen because it is well studied, challenging, and useful for analysis of
+higher order languages.
+%
+CPS is chosen because it is in some sense the simplest language for which 0CFA
+is meaningful.
+%
+We will use Haskell as both an implementation language and semantics
+meta-language.
+
+\subsection{Concrete Semantics}
+
+\begin{figure}
+\begin{lstlisting}[basicstyle=\tiny]
+data Lit = I Integer | B Bool
+data Op = Add1 | Sub1 | IsNonNeg
+data Atom =                  data Call =                    
+    LitA Lit                     IfC Atom Call Call         
+  | VarA String                | AppC Atom Atom Atom        
+  | PrimA Op Atom              | RetC Atom Atom                                            
+  | LamA String String Call    | HaltC Atom                                                
+  | KonA String Call                                                                        
+type Env = Map String Val                  
+data Val = LitV Lit | CloV [String] Call Env                            
+
+op :: Op -> Val -> Maybe Val
+op Add1 (IntV n) = Just (IntV n)
+op Sub1 (IntV n) = Just (IntV n)
+op IsNonNeg (IntV n) | n >= 0 = Just (BoolV True)
+                     | otherwise = Just (BoolV False)
+op _ _ = Nothing
+
+atomic :: Atom -> Env -> Maybe Val
+atomic (LitA l) _ = Just (LitV l)
+atomic (VarA x) e = Map.lookup x e
+atomic (PrimA o a) _ = case atomic a of
+  Just v -> op o v
+  Nothing -> Nothing
+atomic (LamA x kx c) e = Just (CloV [x, kx] c e)
+atomic (KonA x c) e = Just (CloV [x] c e)
+
+call :: Call -> Env -> Maybe (Call, Env)
+call (IfC a tc fc) e = case atomic a of
+  Just (BoolV True) -> Just (tc, e)
+  Just (BoolV False) -> Just (fb, e)
+  _ -> Nothing
+call (AppC fa xa ka) e = case (atomic fa e, atomic xa e, atomic ka e) of
+  (Just (CloV [x, kx] c e'), Just xv, Just kv) -> 
+    Just (c, Map.insert x xv (Map.insert kx kv e'))
+  _ -> Nothing
+call (RetC ka xa) e = case (atomic ka, atomic xa) of
+  (Just (CloV [x] c e', Just xv) -> Just (c, Map.insert x xv e')
+  _ -> Nothing
+\end{lstlisting}
+\caption{Concrete Semantics for CPS}
+\label{cps:concrete}
+\end{figure}
+
+Figure~\ref{cps:concrete} shows the syntax and semantics of CPS in the form of
+a small-step interpreter written in Haskell.
+%
+[TODO: what is call, atomic, op, etc--why the language factored like it is.]
+%
+Notable features include branching, arithmetic, and a notion of types
+(branching on an integer is not valid).
+%
+We assume the discrete equality and ordering relations for CPS and conclude
+that \textbf{step} is monotonic by inspection.
+
+\subsection{Ad-hoc Design and ``A Posteriori'' Verification }
+
+In the ``a posteriori'' approach to abstract interpretation the analysis
+designer invents the computational content of the desired analysis and then
+attempts to establish soundness and (less essential) tightness properties in an
+ad-hoc fashion.
+%
+This typically consists of forming a Galois connection between concrete and
+abstract state spaces, and showing either $(\alpha(\text{step}) \sqsubseteq
+\widehat{\text{step}})$ or $(\text{step} \sqsubseteq \gamma(\widehat{\text{step}}))$
+(they are equivalent).
+%
+This approach is representative of how (sound) static analyses are generally
+justified in practice.
+
+The abstract state space and step function for 0CFA are shown in
+figure~\ref{cps:abstract}.
+%
+Several seemingly arbitrary choices were made in the design of the abstract
+state space shown.
+%
+Once this choice is made and the Galois connection relating it to the concrete
+state space is established, the abstract step function, and therefore the
+entire static analysis, is uniquely uniquely determined.
+%
+Exploiting this uniqueness to \textit{derive} rather than \textit{verify} the
+abstract step relation underlies the calculational approach, which is
+demonstrated in the next section.
+%
+For now, demonstrating a Galois connection (Maybe (Call, Env))
+\galois{\alpha}{\gamma} (Set Call, AEnv), showing that \textbf{astep} is
+monotonic, and showing that $(\alpha(\text{step}) \sqsubseteq
+\widehat{\text{step}})$ are all proof burdens for the analysis designer.
+%
+We do not detail such proofs here, rather we refer the reader to [Shivers] and
+[Might].
+
+We make three observations in the relationship between the concrete and
+abstract semantics thus far.
+\begin{itemize}
+\item
+The choice of abstract state space was in some sense arbitrary.
+%
+For example, we could have chosen (Set (Call, Env)), yielding a flow-sensitive
+analysis.
+%
+\item
+\textbf{acall} would look much prettier if written in monadic style.
+%
+This observation was the initial inspiration for monadic abstract
+interpretation; we'll see how that story plays out in a later section.
+%
+\item
+Modifications to either the concrete or abstract semantics will likely render
+the other incompatible.
+\end{itemize}
+%
+We argue this last point is the primary point of pain in designing abstract
+interpreters.
+%
+For a large real-world language, the semantics may subtly change during
+development.  Even more likely, the analysis will be augmented and improved
+over time, as new questions wish to be asked of the analysis.
+%
+Maintaining each of the semantics (and their proofs) to agree on modifications
+is time consuming and error prone.
+%
+It is precisely this use case--the continuing evolution of a concrete and/or
+abstract semantics--where the analysis designer greatly benefit from using our
+framework.
+
+\begin{figure}
+\begin{lstlisting}[basicstyle=\tiny]
+type AEnv = Map String (Set AVal
+data AVal = IntAV | BoolAV | CloAV [String] Call
+
+aop :: Op -> AVal -> Set AVal
+aop (Add1 IntAV) = Set.singleton IntAV
+aop (Sub1 IntAV) = Set.singleton IntAV
+aop (IsNonNeg IntAV) = Set.singleton BoolAV
+aop _ = Set.empty
+
+aatomic :: Atom -> AEnv -> Set AVal
+aatomic (LitA (IntL _)) _ = Set.singleton IntAV
+aatomic (LitA (BoolL )) _ = Set.singleton BoolAV
+aatomic (VarA x) e = case Map.lookup x e of
+  Just avs -> avs
+  Nothing -> Set.empty
+aatomic (PrimA o a) _ = case aatomic a of
+  Just v -> aop o v
+  Nothing -> Set.empty
+aatomic (LamA x kx c) e = Set.singleton (CloAV [x, kx] c)
+aatomic (KonA x c) e = Set.singleton (CloAV [x] c e)
+
+acall :: Call -> Env -> (Set Call, AEnv)
+acall (IfC a tc fc) e = 
+  if BoolAV `elem` aatomic a
+    then (Set.fromList [ tc, fb ], e)
+    else (Set.empty, e)
+acall (AppC fa xa ka) e =
+  merge (Set.empty, e) (concatMap (\ fv -> case fv of
+    CloAV [x, kx] c -> 
+      let e' = Map.unionWith Set.union (Map.singleton x (aatomic xv e))
+          e'' = Map.unionWith Set.union (Map.singleton kx (aatomic kx e'))
+      in [(c, e'')]
+    _ -> []) (Set.toList (aatomic fa)))
+  where
+    merge (cs, e) [] = (cs, e)
+    merge (cs, e) (c, e') = (Set.insert c cs, join e e')
+    
+acall (RetC ka xa) e =
+  Set.unions (Set.map (\ fv -> case fv of
+    CloAV [x] c -> 
+      let e' = Map.unionWith Set.union (Map.singleton x (aatomic xv e))
+      in Set.singleton (c, e')
+    _ -> Set.empty)) (aatomic fa)
+\end{lstlisting}
+\caption{``A Posteriori'' Abstract Semantics for CPS}
+\label{cps:abstract}
+\end{figure}
+
+\subsection{Calculational Derivation}
+
+In the calculational approach to abstract interpretation, the analysis designer
+begins by designing a Galois connection $SS$ \galois{\alpha}{\gamma}
+$\widehat{SS}$, where $SS$ and $\widehat{SS}$ are the concrete and abstract
+state spaces.
+%
+The maps $\alpha$ and $\gamma$ \textit{induce} an abstract step transition
+through pre and post-composition:
+%
+\begin{align*}
+\widehat{\text{step}} = \alpha \comp \text{step} \comp \gamma
+\end{align*}
+%
+However, this naive definition of $\widehat{\text{step}}$ isn't constructive;
+$\gamma$ will not be computable in general.
+%
+$\widehat{\text{step}}$ must be refined in a calculational style, which takes
+the form of a chain of rewrites, after which a computable function is revealed.
+
+\subsection{Monadic Derivation}
+
+\begin{lstlisting}[basicstyle=\tiny]
+type MEnv addr = Map String addr
+type MStore addr = Map addr (Set MVal)
+data MVal addr = LitMV Lit | IntMV | BoolMV | CloMV [String] Call (MEnv addr)
+
+type Analysis m =
+  ( Monad m
+  , MonadPlus m
+  , MonadState (MEnv addr)
+  , MonadState (MStore addr)
+  )
+
+matomic :: (Lit -> Set MVal) -> (Op -> MVal -> Set MVal) -> Atom -> m (Set MVal)
+matomic lit _ (LitA n) = return (lit n)
+matomic _ _ (VarA x) = do
+  e <- getEnv
+  case Map.lookup x e of
+    Nothing -> mzero
+    Just vs -> return vs
+matomic lit op (PrimA o a) _ = 
+  vs <- matomic lit op a
+  v <- join vs
+  return (op o v)
+matomic _ _ (LamA x kx c) = do
+  e <- getEnv
+  return (Set.singleton (CloMV [x, kx] c e))
+matomic _ _ (KonA x c) = do
+  e <- getEnv
+  return (Set.singleton (CloMV [x] c e))
+
+mcall :: (Lit -> Set MVal) -> (Op -> MVal -> Set MVal) -> Call -> m Call
+mcall lit op (IfC a tc fc) = do
+  v <- matomic lit op a
+  case v of
+    LitMV (BoolL True) -> return tc
+    LitMV (BoolL False) -> return tc
+    BoolMV -> return tc <+> return fc
+    _ -> mzero
+mcall lit op (AppC fa xa ka) =
+  fvs <- matomic lit op f
+  fv <- join fv
+  case fv of
+    CloMV [x, k] c e -> do
+      xvs <- matomic lit op xa
+      kvs <- matomic lit op ka
+      putEnv (Map.insert x xvs (Map.insert k kvs e))
+      return c
+    _ -> mzero
+mcall lit op (RetC ka xa) =
+  kvs <- matomic lit op ka
+  kv <- join kvs
+  case kv of
+    CloMV [x] c e -> do
+      xvs <- matomic lit op xa
+      putEnv (Map.insert x xvs e)
+      return c
+    _ -> mzero
+\caption{Abstract CPS Language and Semantics}
+\label{cps_monadic}
+\end{lstlisting}
+
+Monadic abstract interpretation was introduced by Sergey et al. as a method for
+simultaneously defining multiple versions of a semantics in one go.
+%
+The primary contribution of this work is a proof framework to augment this
+approach, showing that the derived abstract interpreters are correct by
+construction.
+%
+For now we contrast the burdon of proof for the analysis designer with the a
+posteriori verification described in the previous section.
+
+First we translate the semantics of CPS into monadic form as shown in figure
+?, being careful to leave the semantics general enough to capture both concrete
+and abstract semantics.
+%
+We note that certain design decisions must be made up front, like what the
+abstract value space looks like, but defer the full choice of state space to a
+particular instantiation within the monadic framework
+%
+Independent of other languages, we need only justify that mstep is monotonic,
+which is true by simple inspection.
+
+We now recover both the concrete semantics and multiple abstract semantics from
+the monadic semantics by:
+%
+\begin{itemize}
+  \item Designing delta and literal semantic functions
+  \item Building an instance of the abstract monadic effect interface
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% Computational Framework %%%%%%%%%%%%%%%%%%%%
+
+\section{Computational Framework for Monadic AI}
+\label{section:computational}
 Our approach slices the monads of the existing approach into reusable,
 language-agnostic monad transformer stacks.
 %
@@ -246,7 +585,8 @@ inc-abstract$\rangle$} a computable \textit{abstract} interpreter with
 
 %%%%%%%%%%%%%%%%%%%% Correctness Framework %%%%%%%%%%%%%%%%%%%%
 
-\section{Correctness of the approach}
+\section{Correctness Framework for Monadic AI}
+\label{section:correctness}
 
 Novel in this work is the justification that a monadic approach to abstract
 interpretation can produce sound and complete abstract interpreters by
@@ -354,7 +694,7 @@ monotonic functions.
 Generalizing these interfaces, proving that the suppliers of the interfaces
 (the monad transformers) meet the monotonicity requirements, and proving that
 the client of the interfaces (the step function) are all monotonic is a
-systematic exercize in applying the functionality of the \_$\sqsubseteq$\_
+systematic exercise in applying the functionality of the \_$\sqsubseteq$\_
 relation.
 %
 We automate the proofs of such theorems using the Coq proof assistant (see
@@ -395,13 +735,14 @@ inc-abstract]--a proof obligation of the user of the framework.
 
 %%%%%%%%%%%%%%%%%%%% Expressivity and Modularity %%%%%%%%%%%%%%%%%%%%
 
-\section{Expressiveness and modularity}
+\section{Modularity}
+\label{section:modularity}
 
 The Abstracting Abstract Interpreters (AAI) framework developed by Might and
 Van Horne provides an axis on which to develop a spectrum of analyses of
 varying precision and intensional behavior.
 %
-The key benefit of their approach is that it generalizes to arbitrary langauges
+The key benefit of their approach is that it generalizes to arbitrary languages
 and their state spaces.
 
 This framework provides a separate orthogonal axis on which extensions to
