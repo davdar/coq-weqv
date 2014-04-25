@@ -1,0 +1,58 @@
+To give \h|Call| concrete semantics we first design a state space.
+%
+The state space introduces an environment to track variable bindings, and a
+value type containing closures (which mutually close over environments).
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteSS.hs}
+%
+The state space is partial (uses the \h|Maybe| type) and \h|Nothing| is the meaning
+of failed computations.
+%
+Computations fail when an expression is ill-typed, for example if a literal
+flows to function application position, or if a function application is of the
+wrong arity.
+
+%--%
+
+The semantics for \h|Op| are given denotationally with \h|op| and are
+striaghtforward.
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteOp.hs}
+
+The semantics for \h|Atom| are given denotationaly with \h|atom|.
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteAtom.hs}
+%
+Literals evaluate to themselves.
+%
+Variables evaluate to a value retrieved from the environment.
+%
+Lambdas evaluate immediately to closures which capture their environment.
+
+%--%
+
+The semantics for \h|Call| are given \textit{operationally} as a small step
+function with \h|call|.
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteCall.hs}
+%
+Conditional statements branch on boolean values.
+%
+Applications step to a function's body and closure environment with argument
+values bound to formal parameters.
+%
+Termination is signaled with the \h|Halt| command.
+%
+Helper function \h|bindMany xs xas e| evaluates the function arguments \p|xas| and
+binds them to the formal parameters \p|xs| in the environment \p|e|.
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteBindMany.hs}
+%
+\h|bindMany xs xas e| fails if evaluating any argument in \p|xas| fails or if
+there is an arity mismatch.
+
+%--%
+
+The full semantics of \h|Call| are given by the transitive closure of \h|step|.
+%
+\haskell{sections/03AAMByExample/hs/01ConcreteStep.hs}

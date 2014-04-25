@@ -1,0 +1,40 @@
+Now that we have designed an abstract state space--albeit highly
+parameterized--we must turn to implementing its semantics.
+%
+The goal in this entire exercise is to develop the abstract state space and
+semantics in such a way that concrete and abstract interpreters can be derived
+from a single implementation.
+
+%--%
+
+Following the structure of the concrete semantics, we adapt each function to
+the new abstract state space.
+%
+\h|op| is now entirely implemented by the user of the semantics as part of the
+\h|Delta| interface.
+%
+\h|atom| must follow another level of indirection in variable lookups, and must
+account for nondeterminism.
+%
+\haskell{sections/03AAMByExample/hs/03AbstractAtom.hs}
+%
+\h|call| must use the eliminators provided by \h|Delta delta| to guide control
+flow.
+%
+\haskell{sections/03AAMByExample/hs/03AbstractCall.hs}
+%
+\h|bindMany| must join stores when allocating addresses, in case the address is
+already in use.
+%
+\haskell{sections/03AAMByExample/hs/03AbstractBindMany.hs}
+%
+Finally, \h|step| must advance time as it advances each \h|Call| state, and
+\h|exec| is modified to a collecting semantics.
+%
+\haskell{sections/03AAMByExample/hs/03AbstractStep.hs}
+%
+The collecting semantics keep track of all previously seen states.
+%
+This means the state being iterated is purely monotonic, and therefore the
+iteration must terminate if given a finite instantiation of \p|delta| and
+\p|aam|.

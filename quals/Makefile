@@ -1,7 +1,13 @@
-run: build
-	open ./darais-quals.pdf
+all: code tex
 
-build:
-	pdflatex darais-quals.tex
+code:
+	make -C code
 
-.PHONY: run build
+tex:
+	make -C tex
+
+clean:
+	make -C code clean
+	make -C tex clean
+
+.PHONY: main all code tex clean
